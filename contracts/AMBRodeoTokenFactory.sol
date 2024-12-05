@@ -44,7 +44,9 @@ contract AMBRodeoTokenFactory is
         dex = dex_;
         totalSupply = totalSupply_;
         fee = fee_;
-        tokenImplemetation = address(new AMBRodeoTokenImplementation());
+        AMBRodeoTokenImplementation c = new AMBRodeoTokenImplementation();
+        c.init("default", "default", address(c), 0);
+        tokenImplemetation = address(c);
     }
 
     function setDex(address dex_) public onlyOwner {
@@ -57,7 +59,7 @@ contract AMBRodeoTokenFactory is
     }
 
     function transferFee(address account, uint256 value) external onlyOwner {
-        require(value < address(this).balance, "Doesn't have coins");
+        require(value <= address(this).balance, "Doesn't have coins");
         payable(account).transfer(value);
         emit TransferFee(account, value);
     }

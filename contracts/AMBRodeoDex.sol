@@ -56,13 +56,14 @@ contract AMBRodeoDex is Initializable, OwnableUpgradeable, PausableUpgradeable {
     }
 
     function transferFee(address account, uint256 value) external onlyOwner {
-        require(value < feePool, "Doesn't have coins");
+        require(value <= feePool, "Doesn't have coins");
         payable(account).transfer(value);
         feePool -= value;
         emit TransferFee(account, value);
     }
 
     function transferToken(address token, address account) external onlyOwner {
+        require(liquidity[token] > initLiquidity, "Token not have liquidity");
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
         uint256 amountOut = swapIntoOut(
             initLiquidity,
