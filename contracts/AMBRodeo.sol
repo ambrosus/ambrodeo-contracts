@@ -58,22 +58,16 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint128[] stepPrice
     );
     event ChangeOwner(address indexed token, address indexed to);
-    event BuyTokens(
+    event TokenTrade(
         address indexed token,
         address indexed account,
         uint input,
         uint output,
         uint reserveTokens,
-        uint balanceToken
+        uint balanceToken,
+        bool isBuy
     );
-    event SellTokens(
-        address indexed token,
-        address indexed account,
-        uint input,
-        uint output,
-        uint reserveTokens,
-        uint balanceToken
-    );
+
     event TransferToDex(address indexed token, uint tokenBalance, uint balance);
     event ChangeBalanceToDexForToken(address indexed token, uint newBalance);
 
@@ -250,13 +244,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].balanceToDex != 0 &&
             tokens[token].balance >= tokens[token].balanceToDex
         ) toDex(token);
-        emit BuyTokens(
+        emit TokenTrade(
             token,
             msg.sender,
             msg.value,
             amountOut,
             IERC20(token).balanceOf(address(this)),
-            tokens[token].balance
+            tokens[token].balance,
+            true
         );
     }
 
@@ -275,13 +270,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         amountOut = incomeExchange(amountOut);
         payable(msg.sender).transfer(amountOut);
         tokens[token].balance -= amountOut;
-        emit SellTokens(
+        emit TokenTrade(
             token,
             msg.sender,
             amountIn,
             amountOut,
             IERC20(token).balanceOf(address(this)),
-            tokens[token].balance
+            tokens[token].balance,
+            false
         );
     }
 
