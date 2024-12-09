@@ -5,19 +5,26 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-// const privateKeyDeployer = process.env.PRIVATEKEY_DEPLOYER!;
-// if (!privateKeyDeployer)
-//   throw Error("need to set variable PRIVATEKEY_DEPLOYER");
+const privateKeyDeployer = process.env.PRIVATEKEY_DEPLOYER!;
+if (!privateKeyDeployer)
+  throw Error("need to set variable PRIVATEKEY_DEPLOYER");
 
 const config: HardhatUserConfig = {
-  solidity: "0.8.20",
-  // networks: {
-  //   test: {
-  //     url: "https://network.ambrosus-test.io",
-  //     hardfork: "byzantium",
-  //     accounts: [privateKeyDeployer],
-  //   },
-  // },
+  solidity: {
+    version: "0.8.20",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 1000,
+      },
+    },
+  },
+  networks: {
+    dev: {
+      url: "https://network.ambrosus-dev.io",
+      accounts: [privateKeyDeployer],
+    },
+  },
 };
 
 export default config;

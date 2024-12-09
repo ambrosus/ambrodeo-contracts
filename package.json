@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "test": "npx hardhat test",
-    "deploy-local": "npx hardhat run scripts/AMBRodeo.ts --network localhost"
+    "deploy-local": "npx hardhat run scripts/AMBRodeo.ts --network localhost",
+    "deploy-dev": "npx hardhat run scripts/AMBRodeo.ts --network dev"
   },
   "author": "",
   "license": "ISC",
