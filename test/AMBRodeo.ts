@@ -59,7 +59,7 @@ describe("AMBRodeo", function () {
     expect(await token.balanceOf(owner)).to.equal(ethers.parseEther("1"));
     expect(await aMBRodeo.getBalance()).to.equal(ethers.parseEther("1"));
 
-    await token.approve(aMBRodeo.getAddress(), ethers.parseEther("0.5"));
+    await token.approve(aMBRodeo.getAddress(), ethers.parseEther("1"));
     await aMBRodeo.sell(token, ethers.parseEther("0.5"));
 
     expect(await token.balanceOf(owner)).to.equal(ethers.parseEther("0.5"));

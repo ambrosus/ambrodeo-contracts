@@ -18,21 +18,32 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         address creator;
         uint128 totalSupply;
         uint128[] stepPrice;
+        uint balance;
+        bool active;
     }
 
-    uint32 constant MAX_STEPS = 1000;
-    address public tokenImplemetation;
+    uint32 public constant MAX_STEPS = 1000;
     mapping(address => Token) public tokens;
+    address public tokenImplemetation;
+    address public dex;
     address[] public tokensList;
+    uint public balanceToDex;
     uint128 public createPrice;
     uint128 public exchangePrice;
     uint128 public income;
 
+    error test(uint a, uint b);
     error AMBRodeo__InvalidTokenCreationParams(string reason);
     error AMBRodeo__InvalidInitializeToken();
     error AMBRodeo__TokenNotExist(address token);
     error AMBRodeo__TokenTransferError(address token);
     error AMBRodeo__NotEnoughPayment();
+    error AMBRodeo__NotEnoughIncom();
+    error AMBRodeo__TransferToDexError(
+        address token,
+        uint tokenBalance,
+        uint balance
+    );
 
     event CreateToken(
         address indexed token,
@@ -41,11 +52,27 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         string symbol,
         uint totalSupply,
         string imageUrl,
-        uint value
+        uint value,
+        uint128[] stepPrice
     );
-    event ChangeOwner(address token, address to);
-    event BuyTokens(address token, address account, uint input, uint output);
-    event SellTokens(address token, address account, uint input, uint output);
+    event ChangeOwner(address indexed token, address indexed to);
+    event BuyTokens(
+        address indexed token,
+        address indexed account,
+        uint input,
+        uint output,
+        uint reserveTokens,
+        uint balanceToken
+    );
+    event SellTokens(
+        address indexed token,
+        address indexed account,
+        uint input,
+        uint output,
+        uint reserveTokens,
+        uint balanceToken
+    );
+    event TransferToDex(address indexed token, uint tokenBalance, uint balance);
 
     function initialize() public initializer {
         __Ownable_init(msg.sender);
@@ -98,7 +125,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         tokens[address(token)] = Token(
             msg.sender,
             params.totalSupply,
-            params.stepPrice
+            params.stepPrice,
+            0,
+            true
         );
         tokensList.push(address(token));
 
@@ -109,7 +138,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             params.symbol,
             params.totalSupply,
             params.imageUrl,
-            msg.value
+            msg.value,
+            params.stepPrice
         );
     }
 
@@ -127,19 +157,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         if (tokens[token].creator != address(0)) {
             AMBRodeoToken(token).transferOwnership(newOwner);
             emit ChangeOwner(token, newOwner);
-        } else {
-            revert AMBRodeo__TokenNotExist(token);
-        }
-    }
-
-    function transmitToken(address token, address to) public onlyOwner {
-        if (tokens[token].creator != address(0)) {
-            if (
-                !IERC20(token).transfer(
-                    address(to),
-                    IERC20(token).balanceOf(address(this))
-                )
-            ) revert AMBRodeo__TokenTransferError(token);
         } else {
             revert AMBRodeo__TokenNotExist(token);
         }
@@ -212,37 +229,54 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function buy(address token) public payable {
         uint value = incomeExchange(msg.value);
-        Token memory token1 = tokens[token];
-        if (token1.totalSupply == 0) revert AMBRodeo__TokenNotExist(token);
+        if (!tokens[token].active) revert AMBRodeo__TokenNotExist(token);
         uint tokenBalance = IERC20(token).balanceOf(address(this));
         uint amountOut = calculateBuy(
             value,
             tokenBalance,
-            token1.totalSupply,
-            token1.stepPrice
+            tokens[token].totalSupply,
+            tokens[token].stepPrice
         );
 
         if (!IERC20(token).transfer(msg.sender, amountOut))
             revert AMBRodeo__TokenTransferError(token);
-        emit BuyTokens(token, msg.sender, msg.value, amountOut);
+        tokens[token].balance += value;
+
+        if (balanceToDex != 0 && tokens[token].balance >= balanceToDex)
+            toDex(token);
+        emit BuyTokens(
+            token,
+            msg.sender,
+            msg.value,
+            amountOut,
+            IERC20(token).balanceOf(address(this)),
+            tokens[token].balance
+        );
     }
 
     function sell(address token, uint amountIn) public {
-        Token memory token1 = tokens[token];
-        if (token1.totalSupply == 0) revert AMBRodeo__TokenNotExist(token);
+        if (!tokens[token].active) revert AMBRodeo__TokenNotExist(token);
         uint tokenBalance = IERC20(token).balanceOf(address(this));
         uint amountOut = calculateSell(
             amountIn,
             tokenBalance,
-            token1.totalSupply,
-            token1.stepPrice
+            tokens[token].totalSupply,
+            tokens[token].stepPrice
         );
         if (!IERC20(token).transferFrom(msg.sender, address(this), amountIn))
             revert AMBRodeo__TokenTransferError(token);
 
         amountOut = incomeExchange(amountOut);
         payable(msg.sender).transfer(amountOut);
-        emit SellTokens(token, msg.sender, amountIn, amountOut);
+        tokens[token].balance -= amountOut;
+        emit SellTokens(
+            token,
+            msg.sender,
+            amountIn,
+            amountOut,
+            IERC20(token).balanceOf(address(this)),
+            tokens[token].balance
+        );
     }
 
     function getBalance() public view returns (uint) {
@@ -255,5 +289,40 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function setExchangePrice(uint128 amount) public onlyOwner {
         exchangePrice = amount;
+    }
+
+    function transferIncome(address to, uint128 amount) public onlyOwner {
+        if (amount > income) revert AMBRodeo__NotEnoughIncom();
+        payable(to).transfer(amount);
+    }
+
+    function setDex(address dex_) public onlyOwner {
+        dex = dex_;
+    }
+
+    function setBalanceToDex(uint balance) public onlyOwner {
+        balanceToDex = balance;
+    }
+
+    function toDex(address token) internal {
+        uint tokenBalance = IERC20(token).balanceOf(address(this));
+        if (tokenBalance == 0 || tokens[token].balance < balanceToDex)
+            revert AMBRodeo__TransferToDexError(
+                token,
+                tokenBalance,
+                tokens[token].balance
+            );
+
+        if (!IERC20(token).transfer(dex, tokenBalance))
+            revert AMBRodeo__TransferToDexError(
+                token,
+                tokenBalance,
+                tokens[token].balance
+            );
+
+        tokens[token].active = false;
+        payable(dex).transfer(tokens[token].balance);
+        tokens[token].balance = 0;
+        emit TransferToDex(token, tokenBalance, tokens[token].balance);
     }
 }
