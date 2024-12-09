@@ -33,7 +33,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     uint128 public exchangeFee;
     uint128 public income;
 
-    error test(uint a, uint b);
     error AMBRodeo__InvalidTokenCreationParams(string reason);
     error AMBRodeo__InvalidInitializeToken();
     error AMBRodeo__TokenNotExist(address token);
@@ -70,6 +69,13 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     event TransferToDex(address indexed token, uint tokenBalance, uint balance);
     event ChangeBalanceToDexForToken(address indexed token, uint newBalance);
+    event GasCompensation(
+        address to,
+        uint256 gas,
+        uint256 price,
+        uint256 compensation,
+        bool success
+    );
 
     function initialize() public initializer {
         __Ownable_init(msg.sender);
@@ -307,6 +313,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     }
 
     function toDex(address token) internal {
+        uint256 gas = gasleft();
         uint tokenBalance = IERC20(token).balanceOf(address(this));
         if (
             tokenBalance == 0 ||
@@ -330,9 +337,22 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         tokens[token].balance = 0;
         tokens[token].active = false;
         emit TransferToDex(token, tokenBalance, tokens[token].balance);
+        gas -= gasleft();
+        uint128 compensation = uint128(gas * tx.gasprice);
+        if (income > compensation) {
+            (bool success, ) = msg.sender.call{value: compensation}("");
+            if (success) income -= compensation;
+            emit GasCompensation(
+                msg.sender,
+                gas,
+                tx.gasprice,
+                compensation,
+                success
+            );
+        }
     }
 
-    function setBalanceToDexForToken(
+    function setBalanceToDexCustom(
         address token,
         uint newBalance
     ) external onlyOwner {

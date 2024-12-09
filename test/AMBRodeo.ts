@@ -5,8 +5,15 @@ import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 const totalSupply = ethers.parseEther("1000");
 
 describe("AMBRodeo", function () {
+  const TEST_STEP_PRICE = [
+    ethers.parseEther("1"),
+    ethers.parseEther("2"),
+    ethers.parseEther("3"),
+    ethers.parseEther("4"),
+    ethers.parseEther("5"),
+  ];
   async function dep() {
-    let [owner, creator, user] = await ethers.getSigners();
+    let [owner, creator, user, dex] = await ethers.getSigners();
     const AMBRodeo = await ethers.getContractFactory("AMBRodeo");
     let aMBRodeo = await upgrades.deployProxy(AMBRodeo, [], {
       initializer: "initialize",
@@ -16,7 +23,7 @@ describe("AMBRodeo", function () {
       "TestToken1",
       "TT1",
       totalSupply,
-      [1, 2, 3, 4, 5],
+      [1],
       "http://example.com/1.png",
     ]);
 
@@ -28,7 +35,7 @@ describe("AMBRodeo", function () {
     await aMBRodeo.buy(token, {
       value: ethers.parseEther("1"),
     });
-    return { aMBRodeo, token, owner, creator, user };
+    return { aMBRodeo, token, owner, creator, user, dex };
   }
 
   it("Should deploy the AMBRodeo contract", async function () {
@@ -86,13 +93,7 @@ describe("AMBRodeo", function () {
           ethers.parseEther("10"),
           ethers.parseEther("1000"),
           ethers.parseEther("1000"),
-          [
-            ethers.parseEther("1"),
-            ethers.parseEther("2"),
-            ethers.parseEther("3"),
-            ethers.parseEther("4"),
-            ethers.parseEther("5"),
-          ]
+          TEST_STEP_PRICE
         )
       ).to.equal(10);
       expect(
@@ -100,15 +101,17 @@ describe("AMBRodeo", function () {
           ethers.parseEther("10"),
           ethers.parseEther("10"),
           ethers.parseEther("1000"),
-          [
-            ethers.parseEther("1"),
-            ethers.parseEther("2"),
-            ethers.parseEther("3"),
-            ethers.parseEther("4"),
-            ethers.parseEther("5"),
-          ]
+          TEST_STEP_PRICE
         )
       ).to.equal(2);
+      expect(
+        await aMBRodeo.calculateBuy(
+          ethers.parseEther("10"),
+          ethers.parseEther("500"),
+          ethers.parseEther("1000"),
+          TEST_STEP_PRICE
+        )
+      ).to.equal(3);
     });
 
     it("Sell", async function () {
@@ -118,13 +121,7 @@ describe("AMBRodeo", function () {
           ethers.parseEther("10"),
           ethers.parseEther("990"),
           ethers.parseEther("1000"),
-          [
-            ethers.parseEther("1"),
-            ethers.parseEther("2"),
-            ethers.parseEther("3"),
-            ethers.parseEther("4"),
-            ethers.parseEther("5"),
-          ]
+          TEST_STEP_PRICE
         )
       ).to.equal(ethers.parseEther("10000000000000000000"));
       expect(
@@ -132,15 +129,42 @@ describe("AMBRodeo", function () {
           ethers.parseEther("10"),
           ethers.parseEther("100"),
           ethers.parseEther("1000"),
-          [
-            ethers.parseEther("1"),
-            ethers.parseEther("2"),
-            ethers.parseEther("3"),
-            ethers.parseEther("4"),
-            ethers.parseEther("5"),
-          ]
+          TEST_STEP_PRICE
         )
       ).to.equal(ethers.parseEther("50000000000000000000"));
+      expect(
+        await aMBRodeo.calculateSell(
+          ethers.parseEther("10"),
+          ethers.parseEther("500"),
+          ethers.parseEther("1000"),
+          TEST_STEP_PRICE
+        )
+      ).to.equal(ethers.parseEther("30000000000000000000"));
+    });
+  });
+  describe("Dex", function () {
+    it("Transfer to dex", async function () {
+      let { aMBRodeo, token, dex } = await loadFixture(dep);
+      await aMBRodeo.setDex(dex.getAddress());
+      await aMBRodeo.setBalanceToDexCustom(
+        token.getAddress(),
+        ethers.parseEther("11")
+      );
+      await aMBRodeo.buy(token, {
+        value: ethers.parseEther("11"),
+      });
+      expect(await token.balanceOf(aMBRodeo.getAddress())).to.equal(0);
+      expect(await token.balanceOf(dex.getAddress())).to.equal(
+        ethers.parseEther("988")
+      );
+
+      expect(await ethers.provider.getBalance(dex.getAddress())).to.equal(
+        ethers.parseEther("10012")
+      );
+      expect(await ethers.provider.getBalance(aMBRodeo.getAddress())).to.equal(
+        0
+      );
+      expect((await aMBRodeo.tokens(token.getAddress()))[0]).to.equal(0);
     });
   });
 });
