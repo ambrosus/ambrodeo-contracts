@@ -69,6 +69,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint output,
         uint reserveTokens,
         uint balanceToken,
+        uint exchangeFee,
         bool isBuy
     );
 
@@ -262,6 +263,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amountOut,
             IERC20(token).balanceOf(address(this)),
             tokens[token].balance,
+            exchangeFee,
             true
         );
     }
@@ -288,6 +290,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amountOut,
             IERC20(token).balanceOf(address(this)),
             tokens[token].balance,
+            exchangeFee,
             false
         );
     }
