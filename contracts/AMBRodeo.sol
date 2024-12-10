@@ -45,6 +45,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint tokenBalance,
         uint balance
     );
+    error AMBRodeo__BurnTokensError(
+        address token,
+        uint tokenBalance,
+        uint amount
+    );
 
     event CreateToken(
         address indexed token,
@@ -326,17 +331,27 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 tokens[token].balance
             );
 
-        if (!IERC20(token).transfer(dex, tokenBalance))
+        uint stepSize = tokens[token].totalSupply /
+            tokens[token].stepPrice.length;
+        uint curentStep = (tokens[token].totalSupply -
+            IERC20(token).balanceOf(address(this))) / stepSize;
+        uint amount = tokens[token].balance /
+            tokens[token].stepPrice[curentStep];
+
+        if (!AMBRodeoToken(token).burn(tokenBalance - amount))
+            revert AMBRodeo__BurnTokensError(token, tokenBalance, amount);
+
+        if (!IERC20(token).transfer(dex, amount))
             revert AMBRodeo__TransferToDexError(
                 token,
-                tokenBalance,
+                amount,
                 tokens[token].balance
             );
         payable(dex).transfer(tokens[token].balance);
 
         tokens[token].balance = 0;
         tokens[token].active = false;
-        emit TransferToDex(token, tokenBalance, tokens[token].balance);
+        emit TransferToDex(token, amount, tokens[token].balance);
         gas -= gasleft();
         uint128 compensation = uint128(gas * tx.gasprice);
         if (income > compensation) {

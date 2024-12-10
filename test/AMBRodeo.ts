@@ -155,7 +155,7 @@ describe("AMBRodeo", function () {
       });
       expect(await token.balanceOf(aMBRodeo.getAddress())).to.equal(0);
       expect(await token.balanceOf(dex.getAddress())).to.equal(
-        ethers.parseEther("988")
+        ethers.parseEther("12")
       );
 
       expect(await ethers.provider.getBalance(dex.getAddress())).to.equal(

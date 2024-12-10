@@ -20,4 +20,10 @@ contract AMBRodeoToken is ERC20Initializable, Ownable(msg.sender) {
         _mint(account, totalSupply);
         _transferOwnership(msg.sender);
     }
+
+    function burn(uint256 amount) public onlyOwner returns (bool) {
+        if (balanceOf(msg.sender) <= amount) return false;
+        _burn(msg.sender, amount);
+        return true;
+    }
 }
