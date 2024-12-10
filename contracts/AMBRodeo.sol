@@ -341,8 +341,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint amount = tokens[token].balance /
             tokens[token].stepPrice[curentStep];
 
-        if (!AMBRodeoToken(token).burn(tokenBalance - amount))
-            revert AMBRodeo__BurnTokensError(token, tokenBalance, amount);
+        if (tokenBalance > amount) {
+            if (!AMBRodeoToken(token).burn(tokenBalance - amount))
+                revert AMBRodeo__BurnTokensError(token, tokenBalance, amount);
+        } else if (tokenBalance < amount) {
+            AMBRodeoToken(token).mint(amount - tokenBalance);
+        }
 
         if (!IERC20(token).transfer(dex, amount))
             revert AMBRodeo__TransferToDexError(
