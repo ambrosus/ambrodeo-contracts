@@ -382,4 +382,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         tokens[token].balanceToDex = newBalance;
         emit ChangeBalanceToDexForToken(token, newBalance);
     }
+
+    function deactivateToken(address token) public onlyOwner {
+        tokens[token].active = false;
+    }
+
+    function activateToken(address token) public onlyOwner {
+        tokens[token].active = true;
+    }
 }
