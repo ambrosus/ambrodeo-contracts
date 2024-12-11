@@ -5,7 +5,8 @@
   "scripts": {
     "test": "npx hardhat test",
     "deploy-local": "npx hardhat run scripts/AMBRodeo.ts --network localhost",
-    "deploy-dev": "npx hardhat run scripts/AMBRodeo.ts --network dev"
+    "deploy-dev": "npx hardhat run scripts/AMBRodeo.ts --network dev",
+    "deploy-test": "npx hardhat run scripts/AMBRodeo.ts --network test"
   },
   "author": "",
   "license": "ISC",
@@ -13,7 +14,8 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/hardhat-upgrades": "^3.7.0",
-    "hardhat": "^2.22.17"
+    "hardhat": "^2.22.17",
+    "hardhat-tracer": "^3.1.0"
   },
   "dependencies": {
     "@openzeppelin/contracts-upgradeable": "^5.1.0",

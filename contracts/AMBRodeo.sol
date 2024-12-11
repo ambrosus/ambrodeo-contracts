@@ -280,9 +280,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         if (!IERC20(token).transferFrom(msg.sender, address(this), amountIn))
             revert AMBRodeo__TokenTransferError(token);
 
+        tokens[token].balance -= amountOut;
         amountOut = incomeExchange(amountOut);
         payable(msg.sender).transfer(amountOut);
-        tokens[token].balance -= amountOut;
         emit TokenTrade(
             token,
             msg.sender,

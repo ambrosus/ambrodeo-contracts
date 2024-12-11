@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
+import "hardhat-tracer";
 import "@nomicfoundation/hardhat-toolbox";
 import "@openzeppelin/hardhat-upgrades";
 import * as dotenv from "dotenv";
@@ -22,6 +23,10 @@ const config: HardhatUserConfig = {
   networks: {
     dev: {
       url: "https://network.ambrosus-dev.io",
+      accounts: [privateKeyDeployer],
+    },
+    test: {
+      url: "https://network.ambrosus-test.io",
       accounts: [privateKeyDeployer],
     },
   },
