@@ -182,10 +182,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         require(amountIn > 0, "AmountIn must be greater than 0");
         uint limit = reserve;
         uint stepSize = totalSupply / steps.length;
-        uint step = (totalSupply - reserve) / stepSize;
 
         while (true) {
-            uint remain = (reserve % stepSize);
+            uint step = (totalSupply - reserve) / stepSize;
+            uint remain = stepSize -
+                (((step + 1) * stepSize) - (totalSupply - reserve));
+
             if (remain == 0) {
                 if (step == steps.length) revert("There is not enough reserve");
                 remain = stepSize;
@@ -193,15 +195,15 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
             if ((amountIn / steps[step]) < remain) {
                 amountOut += amountIn / steps[step];
-                require(limit >= amountOut, "There is not enough reserve");
+                if (limit <= amountOut) revert("There is not enough reserve");
                 break;
             }
+
             amountIn -= remain * steps[step];
             amountOut += remain;
             reserve -= remain;
             if (amountIn == 0) break;
             if (limit <= amountOut) revert("There is not enough reserve");
-            step++;
         }
     }
 
@@ -213,11 +215,13 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     ) public pure returns (uint amountOut) {
         require(amountIn > 0, "AmountIn must be greater than 0");
         uint stepSize = totalSupply / steps.length;
-        uint step = (totalSupply - reserve) / stepSize;
 
         while (true) {
-            uint remain = stepSize - (reserve % stepSize);
-            if (remain == stepSize) {
+            uint step = (totalSupply - reserve) / stepSize;
+            uint remain = stepSize -
+                (((step + 1) * stepSize) - (totalSupply - reserve));
+
+            if (remain == 0) {
                 if (step == 0) revert("There is not enough reserve");
                 remain = stepSize;
                 step--;

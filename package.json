@@ -16,10 +16,9 @@
     "@openzeppelin/hardhat-upgrades": "^3.7.0",
     "hardhat": "^2.22.17",
     "hardhat-tracer": "^3.1.0",
-    "solidity-coverage": "^0.8.14"
-  },
-  "dependencies": {
+    "solidity-coverage": "^0.8.14",
     "@openzeppelin/contracts-upgradeable": "^5.1.0",
     "dotenv": "^16.4.7"
-  }
+  },
+  "dependencies": {}
 }
