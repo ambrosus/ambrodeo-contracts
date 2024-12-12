@@ -23,6 +23,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         bool active;
     }
 
+    uint32 public constant PERCENT_FACOTR = 100000;
     uint32 public constant MAX_STEPS = 1000;
     mapping(address => Token) public tokens;
     address public tokenImplemetation;
@@ -232,7 +233,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     }
 
     function incomeExchange(uint input) internal returns (uint) {
-        uint128 amount = uint128((input / 100000) * exchangeFeePercent);
+        uint128 amount = uint128((input / PERCENT_FACOTR) * exchangeFeePercent);
         income += amount;
         return input - amount;
     }
@@ -304,7 +305,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     }
 
     function setExchangeFee(uint32 exchangeFeePercent_) public onlyOwner {
-        if (exchangeFeePercent_ < 100000)
+        if (exchangeFeePercent_ < PERCENT_FACOTR)
             exchangeFeePercent = exchangeFeePercent_;
     }
 
