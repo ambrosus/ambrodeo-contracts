@@ -3,6 +3,7 @@ import { ethers, upgrades } from "hardhat";
 import { loadFixture } from "@nomicfoundation/hardhat-network-helpers";
 
 const totalSupply = ethers.parseEther("1000");
+const data = ethers.hexlify(ethers.toUtf8Bytes("http://example.com/1.png"));
 
 describe("AMBRodeo", function () {
   const TEST_STEP_PRICE = [
@@ -21,17 +22,11 @@ describe("AMBRodeo", function () {
 
     await aMBRodeo.setDex(dex.getAddress());
     await aMBRodeo.setCreateFee(ethers.parseEther("0.1"));
-    await aMBRodeo.setExchangeFee(ethers.parseEther("0.02"));
+    await aMBRodeo.setExchangeFee(10000);
     await aMBRodeo.setBalanceToDex(ethers.parseEther("100"));
 
     await aMBRodeo.createToken(
-      [
-        "TestToken1",
-        "TT1",
-        totalSupply,
-        TEST_STEP_PRICE,
-        "http://example.com/1.png",
-      ],
+      ["TestToken1", "TT1", totalSupply, TEST_STEP_PRICE, data],
       { value: ethers.parseEther("0.1") }
     );
 
@@ -58,7 +53,7 @@ describe("AMBRodeo", function () {
 
     expect(await aMBRodeo.dex()).to.equal(await dex.getAddress());
     expect(await aMBRodeo.createFee()).to.equal(ethers.parseEther("0.1"));
-    expect(await aMBRodeo.exchangeFee()).to.equal(ethers.parseEther("0.02"));
+    expect(await aMBRodeo.exchangeFeePercent()).to.equal(10000);
     expect(await aMBRodeo.balanceToDex()).to.equal(ethers.parseEther("100"));
   });
 
@@ -81,11 +76,11 @@ describe("AMBRodeo", function () {
     it("Check buy tokens", async function () {
       let { aMBRodeo, token, owner } = await loadFixture(dep);
       await aMBRodeo.buy(token, {
-        value: ethers.parseEther("1.02"),
+        value: ethers.parseEther("1"),
       });
 
-      expect(await token.balanceOf(owner)).to.equal(ethers.parseEther("1"));
-      expect(await aMBRodeo.getBalance()).to.equal(ethers.parseEther("1.12"));
+      expect(await token.balanceOf(owner)).to.equal(ethers.parseEther("0.9"));
+      expect(await aMBRodeo.getBalance()).to.equal(ethers.parseEther("1.1"));
     });
 
     it("Check sell tokens", async function () {
@@ -95,10 +90,10 @@ describe("AMBRodeo", function () {
       });
 
       await token.approve(await aMBRodeo.getAddress(), ethers.parseEther("1"));
-      await aMBRodeo.sell(token, ethers.parseEther("1"));
+      await aMBRodeo.sell(token, await token.balanceOf(owner));
 
       expect(await token.balanceOf(owner)).to.equal(ethers.parseEther("0"));
-      expect(await aMBRodeo.getBalance()).to.equal(ethers.parseEther("0.14"));
+      expect(await aMBRodeo.getBalance()).to.equal(ethers.parseEther("0.2938"));
 
       await expect(
         aMBRodeo.transferIncome(
@@ -211,15 +206,15 @@ describe("AMBRodeo", function () {
       });
 
       expect(await token.balanceOf(await owner.getAddress())).to.equal(
-        ethers.parseEther("1.98")
+        ethers.parseEther("1.80")
       );
 
       expect(await token.balanceOf(await dex.getAddress())).to.equal(
-        ethers.parseEther("1.98")
+        ethers.parseEther("1.80")
       );
 
       expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
-        ethers.parseEther("10001.98")
+        ethers.parseEther("10001.80")
       );
 
       expect(
@@ -250,15 +245,15 @@ describe("AMBRodeo", function () {
       });
 
       expect(await token.balanceOf(await owner.getAddress())).to.equal(
-        ethers.parseEther("899.996")
+        ethers.parseEther("850")
       );
 
       expect(await token.balanceOf(await dex.getAddress())).to.equal(
-        ethers.parseEther("499.996")
+        ethers.parseEther("450")
       );
 
       expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
-        ethers.parseEther("12499.98")
+        ethers.parseEther("12250")
       );
 
       expect(
@@ -287,19 +282,19 @@ describe("AMBRodeo", function () {
       ).to.be.revertedWithCustomError(aMBRodeo, "AMBRodeo__NotEnoughIncom");
     });
 
-    it("Not enough payment", async function () {
+    it("AmountIn must be greater than 0", async function () {
       let { aMBRodeo, token } = await loadFixture(dep);
       await expect(
         aMBRodeo.buy(token, {
           value: ethers.parseEther("0"),
         })
-      ).to.be.revertedWithCustomError(aMBRodeo, "AMBRodeo__NotEnoughPayment");
+      ).to.be.revertedWith("AmountIn must be greater than 0");
 
       await expect(
         aMBRodeo.buy(token, {
           value: ethers.parseEther("0"),
         })
-      ).to.be.revertedWithCustomError(aMBRodeo, "AMBRodeo__NotEnoughPayment");
+      ).to.be.revertedWith("AmountIn must be greater than 0");
     });
 
     it("Token is not active", async function () {
@@ -350,7 +345,7 @@ describe("AMBRodeo", function () {
               ethers.parseEther("0.000000000000000002"),
               ethers.parseEther("0.000000000000000001"),
             ],
-            "http://example.com/1.png",
+            data,
           ],
           { value: ethers.parseEther("0.1") }
         )
@@ -374,7 +369,7 @@ describe("AMBRodeo", function () {
               ethers.parseEther("0.000000000000000002"),
               ethers.parseEther("0.000000000000000003"),
             ],
-            "http://example.com/1.png",
+            data,
           ],
           { value: ethers.parseEther("0.1") }
         )

@@ -12,7 +12,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         string symbol;
         uint128 totalSupply;
         uint128[] stepPrice;
-        string imageUrl;
+        bytes data;
     }
     struct Token {
         uint balance;
@@ -30,7 +30,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     address[] public tokensList;
     uint public balanceToDex;
     uint128 public createFee;
-    uint128 public exchangeFee;
+    uint128 public exchangeFeePercent;
     uint128 public income;
 
     error AMBRodeo__InvalidTokenCreationParams(string reason);
@@ -54,10 +54,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     event CreateToken(
         address indexed token,
         address indexed account,
-        string indexed name,
+        string name,
         string symbol,
         uint totalSupply,
-        string imageUrl,
+        bytes data,
         uint value,
         uint128[] stepPrice
     );
@@ -147,7 +147,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             params.name,
             params.symbol,
             params.totalSupply,
-            params.imageUrl,
+            params.data,
             msg.value,
             params.stepPrice
         );
@@ -232,9 +232,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     }
 
     function incomeExchange(uint input) internal returns (uint) {
-        if (input < exchangeFee) revert AMBRodeo__NotEnoughPayment();
-        income += exchangeFee;
-        return input - exchangeFee;
+        uint128 amount = uint128((input / 100000) * exchangeFeePercent);
+        income += amount;
+        return input - amount;
     }
 
     function buy(address token) public payable {
@@ -263,7 +263,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amountOut,
             IERC20(token).balanceOf(address(this)),
             tokens[token].balance,
-            exchangeFee,
+            msg.value - value,
             true
         );
     }
@@ -271,7 +271,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function sell(address token, uint amountIn) public {
         if (!tokens[token].active) revert AMBRodeo__TokenNotActive(token);
         uint tokenBalance = IERC20(token).balanceOf(address(this));
-        uint amountOut = calculateSell(
+        uint amount = calculateSell(
             amountIn,
             tokenBalance,
             tokens[token].totalSupply,
@@ -280,8 +280,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         if (!IERC20(token).transferFrom(msg.sender, address(this), amountIn))
             revert AMBRodeo__TokenTransferError(token);
 
-        tokens[token].balance -= amountOut;
-        amountOut = incomeExchange(amountOut);
+        tokens[token].balance -= amount;
+        uint amountOut = incomeExchange(amount);
         payable(msg.sender).transfer(amountOut);
         emit TokenTrade(
             token,
@@ -290,7 +290,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amountOut,
             IERC20(token).balanceOf(address(this)),
             tokens[token].balance,
-            exchangeFee,
+            amount - amountOut,
             false
         );
     }
@@ -303,8 +303,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         createFee = amount;
     }
 
-    function setExchangeFee(uint128 amount) public onlyOwner {
-        exchangeFee = amount;
+    function setExchangeFee(uint32 exchangeFeePercent_) public onlyOwner {
+        if (exchangeFeePercent_ < 100000)
+            exchangeFeePercent = exchangeFeePercent_;
     }
 
     function transferIncome(address to, uint128 amount) public onlyOwner {
