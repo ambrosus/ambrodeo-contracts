@@ -100,8 +100,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             revert AMBRodeo__InvalidTokenCreationParams("name");
         if (bytes(params.symbol).length == 0)
             revert AMBRodeo__InvalidTokenCreationParams("symbol");
-        if (bytes(params.symbol).length == 0)
-            revert AMBRodeo__InvalidTokenCreationParams("imageUrl");
         if (params.totalSupply == 0)
             revert AMBRodeo__InvalidTokenCreationParams("totalSupply");
         if (params.stepPrice.length == 0 || params.stepPrice.length > MAX_STEPS)
@@ -188,8 +186,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             uint remain = stepSize -
                 (((step + 1) * stepSize) - (totalSupply - reserve));
 
+            if (step == steps.length) revert("There is not enough reserve");
             if (remain == 0) {
-                if (step == steps.length) revert("There is not enough reserve");
                 remain = stepSize;
             }
 
@@ -348,8 +346,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].stepPrice[curentStep];
 
         if (tokenBalance > amount) {
-            if (!AMBRodeoToken(token).burn(tokenBalance - amount))
-                revert AMBRodeo__BurnTokensError(token, tokenBalance, amount);
+            AMBRodeoToken(token).burn(tokenBalance - amount);
         } else if (tokenBalance < amount) {
             AMBRodeoToken(token).mint(amount - tokenBalance);
         }
@@ -362,9 +359,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             );
         payable(dex).transfer(tokens[token].balance);
 
+        emit TransferToDex(token, amount, tokens[token].balance);
         tokens[token].balance = 0;
         tokens[token].active = false;
-        emit TransferToDex(token, amount, tokens[token].balance);
         gas -= gasleft();
         uint128 compensation = uint128(gas * tx.gasprice);
         if (income > compensation) {
