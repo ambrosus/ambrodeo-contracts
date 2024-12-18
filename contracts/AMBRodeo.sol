@@ -9,8 +9,6 @@ import "./AMBRodeoToken.sol";
 contract AMBRodeo is Initializable, OwnableUpgradeable {
     struct Token {
         address creator;
-        string name;
-        string symbol;
         bool active;
         bool royaltyLock;
         uint40 createdAt;
@@ -256,8 +254,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
         tokens[address(token)] = Token({
             creator: msg.sender,
-            name: params.name,
-            symbol: params.symbol,
             active: true,
             royaltyLock: true,
             createdAt: uint40(block.timestamp),

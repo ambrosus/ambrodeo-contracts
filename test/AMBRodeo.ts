@@ -79,8 +79,6 @@ describe("AMBRodeo", function () {
     it("Check new token", async function () {
       let { aMBRodeo, token } = await loadFixture(dep);
       const t = await aMBRodeo.tokens(await token.getAddress());
-      expect(await t.name).to.equal("TestToken1");
-      expect(await t.symbol).to.equal("TT1");
       expect(await t.maxSupply).to.equal(ethers.parseEther("1000"));
       expect(await t.royaltyLock).to.equal(true);
     });
