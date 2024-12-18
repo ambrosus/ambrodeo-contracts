@@ -393,4 +393,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function activateToken(address token) public onlyOwner {
         tokens[token].active = true;
     }
+
+    function getTokenCreator(address token) public view returns (address) {
+        return tokens[token].creator;
+    }
 }
