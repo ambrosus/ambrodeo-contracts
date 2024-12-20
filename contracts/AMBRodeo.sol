@@ -100,8 +100,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             revert AMBRodeo__InvalidTokenCreationParams("name");
         if (bytes(params.symbol).length == 0)
             revert AMBRodeo__InvalidTokenCreationParams("symbol");
-        if (params.totalSupply == 0)
-            revert AMBRodeo__InvalidTokenCreationParams("totalSupply");
+        if (
+            params.totalSupply == 0 ||
+            params.totalSupply > 1000000000 * 10 ** 18
+        ) revert AMBRodeo__InvalidTokenCreationParams("totalSupply");
         if (params.stepPrice.length == 0 || params.stepPrice.length > MAX_STEPS)
             revert AMBRodeo__InvalidTokenCreationParams("stepPrice");
 
@@ -111,7 +113,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
         uint128 tmp;
         for (uint32 i = 0; i < params.stepPrice.length; i++) {
-            if (tmp > params.stepPrice[i])
+            if (tmp > params.stepPrice[i] || params.stepPrice[i] > 10 ** 18)
                 revert AMBRodeo__InvalidTokenCreationParams("stepPrice");
             tmp = params.stepPrice[i];
         }
@@ -191,13 +193,13 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 remain = stepSize;
             }
 
-            if ((amountIn / steps[step]) < remain) {
-                amountOut += amountIn / steps[step];
+            if (((amountIn * 10 ** 8) / steps[step]) < remain) {
+                amountOut += (amountIn * 10 ** 8) / steps[step];
                 if (limit <= amountOut) revert("There is not enough reserve");
                 break;
             }
 
-            amountIn -= remain * steps[step];
+            amountIn -= (remain * steps[step]) / 10 ** 8;
             amountOut += remain;
             reserve -= remain;
             if (amountIn == 0) break;
@@ -227,7 +229,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
             if (amountIn < remain) remain = amountIn;
             amountIn -= remain;
-            amountOut += remain * steps[step];
+            amountOut += (remain * steps[step]) / 10 ** 8;
             reserve += remain;
             if (amountIn == 0) break;
             if (reserve >= totalSupply) revert("There is not enough reserve");
@@ -313,6 +315,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function transferIncome(address to, uint128 amount) public onlyOwner {
         if (amount > income) revert AMBRodeo__NotEnoughIncom();
+        income -= amount;
         payable(to).transfer(amount);
     }
 
@@ -342,7 +345,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].stepPrice.length;
         uint curentStep = (tokens[token].totalSupply -
             IERC20(token).balanceOf(address(this))) / stepSize;
-        uint amount = tokens[token].balance /
+        uint amount = (tokens[token].balance * 10 ** 8) /
             tokens[token].stepPrice[curentStep];
 
         if (tokenBalance > amount) {

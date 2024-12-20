@@ -7,11 +7,7 @@ const data = ethers.hexlify(ethers.toUtf8Bytes("http://example.com/1.png"));
 
 describe("AMBRodeo", function () {
   const TEST_STEP_PRICE = [
-    ethers.parseEther("0.000000000000000001"),
-    ethers.parseEther("0.000000000000000002"),
-    ethers.parseEther("0.000000000000000003"),
-    ethers.parseEther("0.000000000000000004"),
-    ethers.parseEther("0.000000000000000005"),
+    100000000, 200000000, 300000000, 400000000, 500000000,
   ];
   async function dep() {
     let [owner, creator, user, dex] = await ethers.getSigners();

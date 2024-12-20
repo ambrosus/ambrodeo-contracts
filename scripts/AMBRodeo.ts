@@ -8,7 +8,10 @@ async function main() {
   let aMBRodeo = await upgrades.deployProxy(AMBRodeo, [], {
     initializer: "initialize",
   });
-
+  // const aMBRodeo = await upgrades.upgradeProxy(
+  //   "0x",
+  //   AMBRodeo
+  // );
   console.log(`AMBRodeo: ${await aMBRodeo.getAddress()}`);
 }
 
