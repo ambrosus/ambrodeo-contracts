@@ -74,7 +74,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         bool isBuy
     );
 
-    event TransferToDex(address indexed token, uint tokenBalance, uint balance);
+    event TransferToDex(
+        address indexed token,
+        uint tokenBalance,
+        uint balance,
+        uint liquidity
+    );
     event ChangeBalanceToDexForToken(address indexed token, uint newBalance);
     event GasCompensation(
         address to,
@@ -354,28 +359,44 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             AMBRodeoToken(token).mint(amount - tokenBalance);
         }
 
-        if (!IERC20(token).transfer(dex, amount))
+        IERC20(token).approve(dex, amount);
+        (bool success, bytes memory data) = dex.call{
+            value: tokens[token].balance
+        }(
+            abi.encodeWithSignature(
+                "addLiquidityAMB(address,uint256,uint256,uint256,address,uint256)",
+                token,
+                amount,
+                amount,
+                tokens[token].balance,
+                address(this),
+                block.timestamp
+            )
+        );
+        if (!success)
             revert AMBRodeo__TransferToDexError(
                 token,
                 amount,
                 tokens[token].balance
             );
-        payable(dex).transfer(tokens[token].balance);
 
-        emit TransferToDex(token, amount, tokens[token].balance);
+        (uint256 amountToken, uint256 amountAMB, uint256 liquidity) = abi
+            .decode(data, (uint256, uint256, uint256));
+
+        emit TransferToDex(token, amountToken, amountAMB, liquidity);
         tokens[token].balance = 0;
         tokens[token].active = false;
         gas -= gasleft();
         uint128 compensation = uint128(gas * tx.gasprice);
         if (income > compensation) {
-            (bool success, ) = msg.sender.call{value: compensation}("");
+            (bool success1, ) = msg.sender.call{value: compensation}("");
             if (success) income -= compensation;
             emit GasCompensation(
                 msg.sender,
                 gas,
                 tx.gasprice,
                 compensation,
-                success
+                success1
             );
         }
     }

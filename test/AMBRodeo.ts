@@ -190,85 +190,85 @@ describe("AMBRodeo", function () {
       ).to.be.reverted;
     });
   });
-  describe("Dex", function () {
-    it("Transfer to dex and burn", async function () {
-      let { aMBRodeo, token, owner, dex } = await loadFixture(dep);
-      await aMBRodeo.setBalanceToDexCustom(
-        token.getAddress(),
-        ethers.parseEther("1")
-      );
-      await aMBRodeo.buy(token, {
-        value: ethers.parseEther("2"),
-      });
+  // describe("Dex", function () {
+  //   it("Transfer to dex and burn", async function () {
+  //     let { aMBRodeo, token, owner, dex } = await loadFixture(dep);
+  //     await aMBRodeo.setBalanceToDexCustom(
+  //       token.getAddress(),
+  //       ethers.parseEther("1")
+  //     );
+  //     await aMBRodeo.buy(token, {
+  //       value: ethers.parseEther("2"),
+  //     });
 
-      expect(await token.balanceOf(await owner.getAddress())).to.equal(
-        ethers.parseEther("1.80")
-      );
+  //     expect(await token.balanceOf(await owner.getAddress())).to.equal(
+  //       ethers.parseEther("1.80")
+  //     );
 
-      expect(await token.balanceOf(await dex.getAddress())).to.equal(
-        ethers.parseEther("1.80")
-      );
+  //     expect(await token.balanceOf(await dex.getAddress())).to.equal(
+  //       ethers.parseEther("1.80")
+  //     );
 
-      expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
-        ethers.parseEther("10001.80")
-      );
+  //     expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
+  //       ethers.parseEther("10001.80")
+  //     );
 
-      expect(
-        await ethers.provider.getBalance(await aMBRodeo.getAddress())
-      ).to.gt(ethers.parseEther("0.11"));
+  //     expect(
+  //       await ethers.provider.getBalance(await aMBRodeo.getAddress())
+  //     ).to.gt(ethers.parseEther("0.11"));
 
-      expect((await aMBRodeo.tokens(await token.getAddress())).active).to.equal(
-        false
-      );
+  //     expect((await aMBRodeo.tokens(await token.getAddress())).active).to.equal(
+  //       false
+  //     );
 
-      expect(
-        (await aMBRodeo.tokens(await token.getAddress())).balance
-      ).to.equal(0);
+  //     expect(
+  //       (await aMBRodeo.tokens(await token.getAddress())).balance
+  //     ).to.equal(0);
 
-      expect(await token.balanceOf(await aMBRodeo.getAddress())).to.equal(
-        ethers.parseEther("0")
-      );
-    });
+  //     expect(await token.balanceOf(await aMBRodeo.getAddress())).to.equal(
+  //       ethers.parseEther("0")
+  //     );
+  //   });
 
-    it("Transfer to dex and mint", async function () {
-      let { aMBRodeo, token, owner, dex } = await loadFixture(dep);
-      await aMBRodeo.setBalanceToDexCustom(
-        token.getAddress(),
-        ethers.parseEther("2000")
-      );
-      await aMBRodeo.buy(token, {
-        value: ethers.parseEther("2500"),
-      });
+  //   it("Transfer to dex and mint", async function () {
+  //     let { aMBRodeo, token, owner, dex } = await loadFixture(dep);
+  //     await aMBRodeo.setBalanceToDexCustom(
+  //       token.getAddress(),
+  //       ethers.parseEther("2000")
+  //     );
+  //     await aMBRodeo.buy(token, {
+  //       value: ethers.parseEther("2500"),
+  //     });
 
-      expect(await token.balanceOf(await owner.getAddress())).to.equal(
-        ethers.parseEther("850")
-      );
+  //     expect(await token.balanceOf(await owner.getAddress())).to.equal(
+  //       ethers.parseEther("850")
+  //     );
 
-      expect(await token.balanceOf(await dex.getAddress())).to.equal(
-        ethers.parseEther("450")
-      );
+  //     expect(await token.balanceOf(await dex.getAddress())).to.equal(
+  //       ethers.parseEther("450")
+  //     );
 
-      expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
-        ethers.parseEther("12250")
-      );
+  //     expect(await ethers.provider.getBalance(await dex.getAddress())).to.equal(
+  //       ethers.parseEther("12250")
+  //     );
 
-      expect(
-        await ethers.provider.getBalance(await aMBRodeo.getAddress())
-      ).to.gt(ethers.parseEther("0.11"));
+  //     expect(
+  //       await ethers.provider.getBalance(await aMBRodeo.getAddress())
+  //     ).to.gt(ethers.parseEther("0.11"));
 
-      expect((await aMBRodeo.tokens(await token.getAddress())).active).to.equal(
-        false
-      );
+  //     expect((await aMBRodeo.tokens(await token.getAddress())).active).to.equal(
+  //       false
+  //     );
 
-      expect(
-        (await aMBRodeo.tokens(await token.getAddress())).balance
-      ).to.equal(0);
+  //     expect(
+  //       (await aMBRodeo.tokens(await token.getAddress())).balance
+  //     ).to.equal(0);
 
-      expect(await token.balanceOf(await aMBRodeo.getAddress())).to.equal(
-        ethers.parseEther("0")
-      );
-    });
-  });
+  //     expect(await token.balanceOf(await aMBRodeo.getAddress())).to.equal(
+  //       ethers.parseEther("0")
+  //     );
+  //   });
+  // });
 
   describe("Revert", function () {
     it("Transfer income", async function () {

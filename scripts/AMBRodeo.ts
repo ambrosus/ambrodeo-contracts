@@ -9,7 +9,7 @@ async function main() {
     initializer: "initialize",
   });
   // const aMBRodeo = await upgrades.upgradeProxy(
-  //   "0x",
+  //   "0x1831312B959f0aa66Abb1504125ab9dE9c33aA31",
   //   AMBRodeo
   // );
   console.log(`AMBRodeo: ${await aMBRodeo.getAddress()}`);
