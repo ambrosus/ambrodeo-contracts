@@ -10,14 +10,13 @@ contract AMBRodeoToken is ERC20Initializable, Ownable(msg.sender) {
     function init(
         string calldata name,
         string calldata symbol,
-        address account,
         uint256 totalSupply
     ) external {
         require(!_initialized, "Initialized");
         _initialized = true;
         _name = name;
         _symbol = symbol;
-        _mint(account, totalSupply);
+        _mint(msg.sender, totalSupply);
         _transferOwnership(msg.sender);
     }
 

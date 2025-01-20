@@ -7,360 +7,276 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./AMBRodeoToken.sol";
 
 contract AMBRodeo is Initializable, OwnableUpgradeable {
-    struct Params {
-        string name;
-        string symbol;
-        uint128 totalSupply;
-        uint128[] stepPrice;
-        bytes data;
-    }
     struct Token {
-        uint balance;
-        uint balanceToDex;
         address creator;
-        uint128 totalSupply;
-        uint128[] stepPrice;
         bool active;
+        uint256 balance;
+        uint256 virtualLiquidity;
     }
 
-    uint32 public constant PERCENT_FACOTR = 100000;
-    uint32 public constant MAX_STEPS = 1000;
+    struct Settings {
+        bool createToken;
+        address tokenImplemetation;
+        address dex;
+        uint256 balanceToDex;
+        uint256 createFee;
+        uint256 exchangeFee;
+        uint256 totalSupply;
+        uint256 virtualLiquidity;
+        bool initLiquidity;
+    }
+
+    uint256 public constant PERCENT_FACTOR = 100000;
+    Settings public settings;
     mapping(address => Token) public tokens;
-    address public tokenImplemetation;
-    address public dex;
-    address[] public tokensList;
-    uint public balanceToDex;
-    uint128 public createFee;
-    uint128 public exchangeFeePercent;
-    uint128 public income;
+    address[] public list;
+    uint256 public internalBalance;
 
-    error AMBRodeo__InvalidTokenCreationParams(string reason);
-    error AMBRodeo__InvalidInitializeToken();
-    error AMBRodeo__TokenNotExist(address token);
-    error AMBRodeo__TokenNotActive(address token);
-    error AMBRodeo__TokenTransferError(address token);
-    error AMBRodeo__NotEnoughPayment();
-    error AMBRodeo__NotEnoughIncom();
-    error AMBRodeo__TransferToDexError(
-        address token,
-        uint tokenBalance,
-        uint balance
-    );
-    error AMBRodeo__BurnTokensError(
-        address token,
-        uint tokenBalance,
-        uint amount
-    );
+    error AMBRodeoError(string reason);
+    error AMBRodeoErrorCreateFee(uint256, uint256);
 
-    event CreateToken(
-        address indexed token,
-        address indexed account,
-        string name,
-        string symbol,
-        uint totalSupply,
-        bytes data,
-        uint value,
-        uint128[] stepPrice
-    );
-    event ChangeOwner(address indexed token, address indexed to);
+    event CreateToken(address token, string name, string symbol, bytes data);
     event TokenTrade(
         address indexed token,
-        address indexed account,
-        uint input,
-        uint output,
-        uint reserveTokens,
-        uint balanceToken,
-        uint exchangeFee,
+        uint256 amountIn,
+        uint256 excludeFee,
+        uint256 amountOut,
         bool isBuy
     );
-
     event TransferToDex(
         address indexed token,
         uint tokenBalance,
         uint balance,
         uint liquidity
     );
-    event ChangeBalanceToDexForToken(address indexed token, uint newBalance);
     event GasCompensation(
-        address to,
+        address indexed to,
         uint256 gas,
         uint256 price,
         uint256 compensation,
         bool success
     );
 
-    function initialize() public initializer {
+    function initialize() external initializer {
         __Ownable_init(msg.sender);
-        AMBRodeoToken token = new AMBRodeoToken();
-        token.init("default", "default", address(this), 0);
-        tokenImplemetation = address(token);
+        AMBRodeoToken tokenImplementation = new AMBRodeoToken();
+        tokenImplementation.init("default", "default", 0);
+        settings.tokenImplemetation = address(tokenImplementation);
     }
 
-    function setTokenImplemetation(address token) external onlyOwner {
-        tokenImplemetation = token;
+    function setTokenImplemetation(
+        address tokenImplementation
+    ) external onlyOwner {
+        settings.tokenImplemetation = tokenImplementation;
     }
 
-    function validateParams(Params calldata params) internal pure {
-        if (bytes(params.name).length == 0)
-            revert AMBRodeo__InvalidTokenCreationParams("name");
-        if (bytes(params.symbol).length == 0)
-            revert AMBRodeo__InvalidTokenCreationParams("symbol");
-        if (
-            params.totalSupply == 0 ||
-            params.totalSupply > 1000000000 * 10 ** 18
-        ) revert AMBRodeo__InvalidTokenCreationParams("totalSupply");
-        if (params.stepPrice.length == 0 || params.stepPrice.length > MAX_STEPS)
-            revert AMBRodeo__InvalidTokenCreationParams("stepPrice");
-
-        if (params.stepPrice[0] == 0) {
-            revert AMBRodeo__InvalidTokenCreationParams("stepPrice");
+    function setCreateToken() external onlyOwner {
+        if (settings.createToken) {
+            settings.createToken = false;
+            return;
         }
+        settings.createToken = true;
+    }
 
-        uint128 tmp;
-        for (uint32 i = 0; i < params.stepPrice.length; i++) {
-            if (tmp > params.stepPrice[i] || params.stepPrice[i] > 10 ** 18)
-                revert AMBRodeo__InvalidTokenCreationParams("stepPrice");
-            tmp = params.stepPrice[i];
+    function transferInternalBalance(
+        address to,
+        uint256 amount
+    ) external onlyOwner {
+        if (amount <= internalBalance) {
+            payable(to).transfer(amount);
+            internalBalance -= amount;
         }
     }
 
-    function createToken(Params calldata params) public payable {
-        if (msg.value != createFee) revert AMBRodeo__NotEnoughPayment();
-        income += createFee;
-
-        validateParams(params);
-        AMBRodeoToken token = AMBRodeoToken(Clones.clone(tokenImplemetation));
-        token.init(
-            params.name,
-            params.symbol,
-            address(this),
-            params.totalSupply
-        );
-
-        tokens[address(token)] = Token(
-            0,
-            balanceToDex,
-            msg.sender,
-            params.totalSupply,
-            params.stepPrice,
-            true
-        );
-        tokensList.push(address(token));
-
-        emit CreateToken(
-            address(token),
-            msg.sender,
-            params.name,
-            params.symbol,
-            params.totalSupply,
-            params.data,
-            msg.value,
-            params.stepPrice
-        );
+    function setVirtualLiquidity(uint256 amount) external onlyOwner {
+        settings.virtualLiquidity = amount;
     }
 
-    function tokensCount() external view returns (uint) {
-        return tokensList.length;
+    function setInitLiquidity() external onlyOwner {
+        if (settings.initLiquidity) {
+            settings.initLiquidity = false;
+            return;
+        }
+        settings.initLiquidity = true;
     }
 
-    function getStepPrice(
-        address token
-    ) external view returns (uint128[] memory) {
-        return tokens[token].stepPrice;
+    function setDex(address dex) external onlyOwner {
+        settings.dex = dex;
     }
 
-    function changeOwner(address token, address newOwner) external onlyOwner {
-        if (tokens[token].creator != address(0)) {
-            AMBRodeoToken(token).transferOwnership(newOwner);
-            emit ChangeOwner(token, newOwner);
-        } else {
-            revert AMBRodeo__TokenNotExist(token);
+    function setBalanceToDex(uint256 amount) external onlyOwner {
+        settings.balanceToDex = amount;
+    }
+
+    function setCreateFee(uint256 amount) external onlyOwner {
+        settings.createFee = amount;
+    }
+
+    function setExchangeFee(uint256 amount) external onlyOwner {
+        settings.exchangeFee = amount;
+    }
+
+    function setTotalSupply(uint256 amount) external onlyOwner {
+        settings.totalSupply = amount;
+    }
+
+    function excludeExchangeFee(uint input) internal returns (uint256) {
+        uint128 amount = uint128(
+            (input / PERCENT_FACTOR) * settings.exchangeFee
+        );
+        internalBalance += amount;
+        return input - amount;
+    }
+
+    function tokenChangeOwner(
+        address token,
+        address newOwner
+    ) external onlyOwner {
+        AMBRodeoToken(token).transferOwnership(newOwner);
+    }
+
+    function setActiveToken(address token) external onlyOwner {
+        if (tokens[token].active) {
+            tokens[token].active = false;
+            return;
+        }
+        tokens[token].active = true;
+    }
+
+    function createToken(
+        uint256 amount,
+        string calldata name,
+        string calldata symbol,
+        bytes calldata data
+    ) external payable {
+        if (bytes(name).length == 0) revert AMBRodeoError("Short token name");
+        if (bytes(symbol).length == 0)
+            revert AMBRodeoError("Short token symbol");
+        if (!settings.createToken)
+            revert AMBRodeoError("Tokens create disabled");
+        if (msg.value < settings.createFee)
+            revert AMBRodeoErrorCreateFee(settings.createFee, msg.value);
+
+        if (settings.totalSupply == 0 || settings.virtualLiquidity == 0)
+            revert AMBRodeoError("Settings error");
+
+        AMBRodeoToken token = AMBRodeoToken(
+            Clones.clone(settings.tokenImplemetation)
+        );
+        token.init(name, symbol, settings.totalSupply);
+
+        tokens[address(token)] = Token({
+            creator: msg.sender,
+            active: true,
+            balance: settings.virtualLiquidity,
+            virtualLiquidity: settings.virtualLiquidity
+        });
+        list.push(address(token));
+
+        // if (msg.value > settings.createFee)
+        //     payable(msg.sender).transfer(msg.value - settings.createFee);
+        internalBalance += settings.createFee;
+        emit CreateToken(address(token), name, symbol, data);
+
+        if (msg.value > settings.createFee) {
+            uint256 amountIn = msg.value - settings.createFee;
+            (uint256 amountOut, uint256 newReserveCoin) = calculateBuy(
+                address(token),
+                amountIn
+            );
+
+            if (
+                tokens[address(token)].virtualLiquidity == 1 &&
+                settings.initLiquidity
+            ) {
+                amountOut = amount;
+                newReserveCoin = msg.value - settings.createFee;
+            }
+
+            tokens[address(token)].balance = newReserveCoin;
+            if (!IERC20(token).transfer(msg.sender, amountOut))
+                revert AMBRodeoError("Transfer token failed");
+
+            if (
+                settings.balanceToDex != 0 &&
+                tokens[address(token)].balance >= settings.balanceToDex
+            ) toDex(address(token));
+
+            emit TokenTrade(
+                address(token),
+                msg.value,
+                amountIn,
+                amountOut,
+                true
+            );
         }
     }
 
     function calculateBuy(
-        uint amountIn,
-        uint reserve,
-        uint totalSupply,
-        uint128[] memory steps
-    ) public pure returns (uint amountOut) {
-        require(amountIn > 0, "AmountIn must be greater than 0");
-        uint limit = reserve;
-        uint stepSize = totalSupply / steps.length;
-
-        while (true) {
-            uint step = (totalSupply - reserve) / stepSize;
-            uint remain = stepSize -
-                (((step + 1) * stepSize) - (totalSupply - reserve));
-
-            if (step == steps.length) revert("There is not enough reserve");
-            if (remain == 0) {
-                remain = stepSize;
-            }
-
-            if (((amountIn * 10 ** 8) / steps[step]) < remain) {
-                amountOut += (amountIn * 10 ** 8) / steps[step];
-                if (limit <= amountOut) revert("There is not enough reserve");
-                break;
-            }
-
-            amountIn -= (remain * steps[step]) / 10 ** 8;
-            amountOut += remain;
-            reserve -= remain;
-            if (amountIn == 0) break;
-            if (limit <= amountOut) revert("There is not enough reserve");
-        }
+        address token,
+        uint256 amountCoinIn
+    ) public view returns (uint256 amountTokenOut, uint256 newReserveCoin) {
+        require(amountCoinIn > 0, "Amount must be greater than 0");
+        uint256 reserveToken = IERC20(token).balanceOf(address(this));
+        uint256 k = tokens[token].balance * reserveToken;
+        newReserveCoin = tokens[token].balance + amountCoinIn;
+        uint256 newReserveToken = k / newReserveCoin;
+        amountTokenOut = reserveToken - newReserveToken;
     }
 
     function calculateSell(
-        uint amountIn,
-        uint reserve,
-        uint totalSupply,
-        uint128[] memory steps
-    ) public pure returns (uint amountOut) {
-        require(amountIn > 0, "AmountIn must be greater than 0");
-        uint stepSize = totalSupply / steps.length;
-
-        while (true) {
-            uint step = (totalSupply - reserve) / stepSize;
-            uint remain = stepSize -
-                (((step + 1) * stepSize) - (totalSupply - reserve));
-
-            if (remain == 0) {
-                if (step == 0) revert("There is not enough reserve");
-                remain = stepSize;
-                step--;
-            }
-
-            if (amountIn < remain) remain = amountIn;
-            amountIn -= remain;
-            amountOut += (remain * steps[step]) / 10 ** 8;
-            reserve += remain;
-            if (amountIn == 0) break;
-            if (reserve >= totalSupply) revert("There is not enough reserve");
-        }
-    }
-
-    function incomeExchange(uint input) internal returns (uint) {
-        uint128 amount = uint128((input / PERCENT_FACOTR) * exchangeFeePercent);
-        income += amount;
-        return input - amount;
+        address token,
+        uint256 amountTokenIn
+    ) public view returns (uint256 amountCoinOut, uint256 newReserveCoin) {
+        require(amountTokenIn > 0, "Amount must be greater than 0");
+        uint256 reserveToken = IERC20(token).balanceOf(address(this));
+        uint256 k = tokens[token].balance * reserveToken;
+        uint256 newReserveToken = reserveToken + amountTokenIn;
+        newReserveCoin = k / newReserveToken;
+        amountCoinOut = tokens[token].balance - newReserveCoin;
     }
 
     function buy(address token) public payable {
-        uint value = incomeExchange(msg.value);
-        if (!tokens[token].active) revert AMBRodeo__TokenNotActive(token);
-        uint tokenBalance = IERC20(token).balanceOf(address(this));
-        uint amountOut = calculateBuy(
-            value,
-            tokenBalance,
-            tokens[token].totalSupply,
-            tokens[token].stepPrice
+        uint256 amountIn = excludeExchangeFee(msg.value);
+        if (!tokens[token].active) revert AMBRodeoError("Token not active");
+        (uint256 amountOut, uint256 newReserveCoin) = calculateBuy(
+            token,
+            amountIn
         );
-
+        tokens[token].balance = newReserveCoin;
         if (!IERC20(token).transfer(msg.sender, amountOut))
-            revert AMBRodeo__TokenTransferError(token);
-        tokens[token].balance += value;
+            revert AMBRodeoError("Transfer token failed");
 
         if (
-            tokens[token].balanceToDex != 0 &&
-            tokens[token].balance >= tokens[token].balanceToDex
+            settings.balanceToDex != 0 &&
+            tokens[token].balance >= settings.balanceToDex
         ) toDex(token);
-        emit TokenTrade(
+
+        emit TokenTrade(token, msg.value, amountIn, amountOut, true);
+    }
+
+    function sell(address token, uint256 amount) public {
+        if (!tokens[token].active) revert AMBRodeoError("Token not active");
+        (uint256 amountOut, uint256 newReserveCoin) = calculateSell(
             token,
-            msg.sender,
-            msg.value,
-            amountOut,
-            IERC20(token).balanceOf(address(this)),
-            tokens[token].balance,
-            msg.value - value,
-            true
+            amount
         );
-    }
+        tokens[token].balance = newReserveCoin;
+        uint256 amountOutExcludeFee = excludeExchangeFee(amountOut);
+        if (!IERC20(token).transferFrom(msg.sender, address(this), amount))
+            revert AMBRodeoError("Transfer token failed");
 
-    function sell(address token, uint amountIn) public {
-        if (!tokens[token].active) revert AMBRodeo__TokenNotActive(token);
-        uint tokenBalance = IERC20(token).balanceOf(address(this));
-        uint amount = calculateSell(
-            amountIn,
-            tokenBalance,
-            tokens[token].totalSupply,
-            tokens[token].stepPrice
-        );
-        if (!IERC20(token).transferFrom(msg.sender, address(this), amountIn))
-            revert AMBRodeo__TokenTransferError(token);
-
-        tokens[token].balance -= amount;
-        uint amountOut = incomeExchange(amount);
-        payable(msg.sender).transfer(amountOut);
-        emit TokenTrade(
-            token,
-            msg.sender,
-            amountIn,
-            amountOut,
-            IERC20(token).balanceOf(address(this)),
-            tokens[token].balance,
-            amount - amountOut,
-            false
-        );
-    }
-
-    function getBalance() public view returns (uint) {
-        return address(this).balance;
-    }
-
-    function setCreateFee(uint128 amount) public onlyOwner {
-        createFee = amount;
-    }
-
-    function setExchangeFee(uint32 exchangeFeePercent_) public onlyOwner {
-        if (exchangeFeePercent_ < PERCENT_FACOTR)
-            exchangeFeePercent = exchangeFeePercent_;
-    }
-
-    function transferIncome(address to, uint128 amount) public onlyOwner {
-        if (amount > income) revert AMBRodeo__NotEnoughIncom();
-        income -= amount;
-        payable(to).transfer(amount);
-    }
-
-    function setDex(address dex_) public onlyOwner {
-        dex = dex_;
-    }
-
-    function setBalanceToDex(uint balance) public onlyOwner {
-        balanceToDex = balance;
+        payable(msg.sender).transfer(amountOutExcludeFee);
+        emit TokenTrade(token, amount, amountOutExcludeFee, amountOut, false);
     }
 
     function toDex(address token) internal {
         uint256 gas = gasleft();
-        uint tokenBalance = IERC20(token).balanceOf(address(this));
-        if (
-            tokenBalance == 0 ||
-            tokens[token].balance < tokens[token].balanceToDex ||
-            !tokens[token].active
-        )
-            revert AMBRodeo__TransferToDexError(
-                token,
-                tokenBalance,
-                tokens[token].balance
-            );
 
-        uint stepSize = tokens[token].totalSupply /
-            tokens[token].stepPrice.length;
-        uint curentStep = (tokens[token].totalSupply -
-            IERC20(token).balanceOf(address(this))) / stepSize;
-        uint amount = (tokens[token].balance * 10 ** 8) /
-            tokens[token].stepPrice[curentStep];
-
-        if (tokenBalance > amount) {
-            AMBRodeoToken(token).burn(tokenBalance - amount);
-        } else if (tokenBalance < amount) {
-            AMBRodeoToken(token).mint(amount - tokenBalance);
-        }
-
-        IERC20(token).approve(dex, amount);
-        (bool success, bytes memory data) = dex.call{
+        excludeVirtualLiquidity(token);
+        uint256 amount = IERC20(token).balanceOf(address(this));
+        IERC20(token).approve(settings.dex, amount);
+        (bool success, bytes memory data) = settings.dex.call{
             value: tokens[token].balance
         }(
             abi.encodeWithSignature(
@@ -373,24 +289,19 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 block.timestamp
             )
         );
-        if (!success)
-            revert AMBRodeo__TransferToDexError(
-                token,
-                amount,
-                tokens[token].balance
-            );
+        if (!success) revert AMBRodeoError("Transfer liquidity to dex failed");
 
         (uint256 amountToken, uint256 amountAMB, uint256 liquidity) = abi
             .decode(data, (uint256, uint256, uint256));
-
-        emit TransferToDex(token, amountToken, amountAMB, liquidity);
         tokens[token].balance = 0;
         tokens[token].active = false;
+        emit TransferToDex(token, amountToken, amountAMB, liquidity);
+
         gas -= gasleft();
         uint128 compensation = uint128(gas * tx.gasprice);
-        if (income > compensation) {
+        if (internalBalance > compensation) {
             (bool success1, ) = msg.sender.call{value: compensation}("");
-            if (success) income -= compensation;
+            if (success) internalBalance -= compensation;
             emit GasCompensation(
                 msg.sender,
                 gas,
@@ -401,24 +312,16 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         }
     }
 
-    function setBalanceToDexCustom(
-        address token,
-        uint newBalance
-    ) external onlyOwner {
-        if (!tokens[token].active) revert AMBRodeo__TokenNotActive(token);
-        tokens[token].balanceToDex = newBalance;
-        emit ChangeBalanceToDexForToken(token, newBalance);
-    }
-
-    function deactivateToken(address token) public onlyOwner {
-        tokens[token].active = false;
-    }
-
-    function activateToken(address token) public onlyOwner {
-        tokens[token].active = true;
-    }
-
-    function getTokenCreator(address token) public view returns (address) {
-        return tokens[token].creator;
+    function excludeVirtualLiquidity(address token) internal {
+        if (tokens[token].virtualLiquidity == 1) return;
+        tokens[token].balance -= tokens[token].virtualLiquidity;
+        (uint256 amountOut, ) = calculateSell(token, 1e18);
+        uint256 amount = ((tokens[token].balance / amountOut) + 1) * 10 ** 18;
+        uint256 tokenBalance = IERC20(token).balanceOf(address(this));
+        if (amount > tokenBalance) {
+            AMBRodeoToken(token).mint(amount - tokenBalance);
+        } else if (amount < tokenBalance) {
+            AMBRodeoToken(token).burn(tokenBalance - amount);
+        }
     }
 }
