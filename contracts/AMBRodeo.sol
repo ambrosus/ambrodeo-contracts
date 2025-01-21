@@ -35,7 +35,13 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     error AMBRodeoError(string reason);
     error AMBRodeoErrorCreateFee(uint256, uint256);
 
-    event CreateToken(address token, string name, string symbol, bytes data);
+    event CreateToken(
+        address token,
+        address account,
+        string name,
+        string symbol,
+        bytes data
+    );
     event TokenTrade(
         address indexed token,
         address indexed account,
@@ -177,7 +183,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         // if (msg.value > settings.createFee)
         //     payable(msg.sender).transfer(msg.value - settings.createFee);
         internalBalance += settings.createFee;
-        emit CreateToken(address(token), name, symbol, data);
+        emit CreateToken(address(token), msg.sender, name, symbol, data);
 
         if (msg.value > settings.createFee) {
             uint256 amountIn = msg.value - settings.createFee;
