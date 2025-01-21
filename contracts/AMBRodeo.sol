@@ -38,6 +38,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     event CreateToken(address token, string name, string symbol, bytes data);
     event TokenTrade(
         address indexed token,
+        address indexed account,
         uint256 amountIn,
         uint256 excludeFee,
         uint256 amountOut,
@@ -120,8 +121,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         settings.totalSupply = amount;
     }
 
-    function excludeExchangeFee(uint input) internal returns (uint256) {
-        uint128 amount = uint128(
+    function excludeExchangeFee(uint256 input) internal returns (uint256) {
+        uint256 amount = uint256(
             (input / PERCENT_FACTOR) * settings.exchangeFee
         );
         internalBalance += amount;
@@ -204,6 +205,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
             emit TokenTrade(
                 address(token),
+                msg.sender,
                 msg.value,
                 amountIn,
                 amountOut,
@@ -252,7 +254,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].balance >= settings.balanceToDex
         ) toDex(token);
 
-        emit TokenTrade(token, msg.value, amountIn, amountOut, true);
+        emit TokenTrade(
+            token,
+            msg.sender,
+            msg.value,
+            amountIn,
+            amountOut,
+            true
+        );
     }
 
     function sell(address token, uint256 amount) public {
@@ -267,7 +276,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             revert AMBRodeoError("Transfer token failed");
 
         payable(msg.sender).transfer(amountOutExcludeFee);
-        emit TokenTrade(token, amount, amountOutExcludeFee, amountOut, false);
+        emit TokenTrade(
+            token,
+            msg.sender,
+            amount,
+            amountOutExcludeFee,
+            amountOut,
+            false
+        );
     }
 
     function toDex(address token) internal {
@@ -323,5 +339,21 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         } else if (amount < tokenBalance) {
             AMBRodeoToken(token).burn(tokenBalance - amount);
         }
+    }
+
+    function getCreateFee() public view returns (uint256) {
+        return settings.createFee;
+    }
+
+    function getExchangeFee() public view returns (uint256) {
+        return settings.exchangeFee;
+    }
+
+    function getBalanceToDex() public view returns (uint256) {
+        return settings.balanceToDex;
+    }
+
+    function getTotalSupply() public view returns (uint256) {
+        return settings.totalSupply;
     }
 }
