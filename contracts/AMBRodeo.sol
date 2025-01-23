@@ -48,6 +48,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 amountIn,
         uint256 excludeFee,
         uint256 amountOut,
+        uint256 liquidity,
         bool isBuy
     );
     event TransferToDex(
@@ -215,6 +216,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 msg.value,
                 amountIn,
                 amountOut,
+                tokens[address(token)].balance -
+                    tokens[address(token)].virtualLiquidity,
                 true
             );
         }
@@ -266,6 +269,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             msg.value,
             amountIn,
             amountOut,
+            tokens[token].balance - tokens[token].virtualLiquidity,
             true
         );
     }
@@ -288,6 +292,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amount,
             amountOutExcludeFee,
             amountOut,
+            tokens[token].balance - tokens[token].virtualLiquidity,
             false
         );
     }

@@ -1,6 +1,6 @@
 const { upgrades } = require("hardhat");
 async function main() {
-  const proxyAddress = "0xA701344CF6cF7e1Fc204546B2fb79530A4198B52";
+  const proxyAddress = "0x617e07F330c7fB77af92ea9Bc957F48C17f563Ec";
   const implementationAddress = await upgrades.erc1967.getImplementationAddress(
     proxyAddress
   );
