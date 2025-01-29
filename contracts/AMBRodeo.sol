@@ -258,11 +258,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         if (!IERC20(token).transfer(msg.sender, amountOut))
             revert AMBRodeoError("Transfer token failed");
 
-        if (
-            settings.balanceToDex != 0 &&
-            tokens[token].balance >= settings.balanceToDex
-        ) toDex(token);
-
         emit TokenTrade(
             token,
             msg.sender,
@@ -272,6 +267,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].balance - tokens[token].virtualLiquidity,
             true
         );
+
+        if (
+            settings.balanceToDex != 0 &&
+            tokens[token].balance >= settings.balanceToDex
+        ) toDex(token);
     }
 
     function sell(address token, uint256 amount) public {
@@ -328,7 +328,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint128 compensation = uint128(gas * tx.gasprice);
         if (internalBalance > compensation) {
             (bool success1, ) = msg.sender.call{value: compensation}("");
-            if (success) internalBalance -= compensation;
+            if (success1) internalBalance -= compensation;
             emit GasCompensation(
                 msg.sender,
                 gas,

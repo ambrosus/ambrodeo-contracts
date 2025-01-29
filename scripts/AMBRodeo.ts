@@ -5,13 +5,17 @@ dotenv.config();
 
 async function main() {
   const AMBRodeo = await ethers.getContractFactory("AMBRodeo");
-  let aMBRodeo = await upgrades.deployProxy(AMBRodeo, [], {
-    initializer: "initialize",
-  });
-  // const aMBRodeo = await upgrades.upgradeProxy(
-  //   "0xA701344CF6cF7e1Fc204546B2fb79530A4198B52",
+  // let aMBRodeo = await upgrades.deployProxy(AMBRodeo, [], {
+  //   initializer: "initialize",
+  // });
+  // await upgrades.forceImport(
+  //   "0x617e07F330c7fB77af92ea9Bc957F48C17f563Ec",
   //   AMBRodeo
   // );
+  const aMBRodeo = await upgrades.upgradeProxy(
+    "0x617e07F330c7fB77af92ea9Bc957F48C17f563Ec",
+    AMBRodeo
+  );
   console.log(`AMBRodeo: ${await aMBRodeo.getAddress()}`);
 }
 
