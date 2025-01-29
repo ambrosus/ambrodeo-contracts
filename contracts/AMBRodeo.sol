@@ -342,8 +342,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function excludeVirtualLiquidity(address token) internal {
         if (tokens[token].virtualLiquidity == 1) return;
         tokens[token].balance -= tokens[token].virtualLiquidity;
-        (uint256 amountOut, ) = calculateSell(token, 1e18);
-        uint256 amount = ((tokens[token].balance / amountOut) + 1) * 10 ** 18;
+        (uint256 amountOut, ) = calculateBuy(token, 1e8);
+        uint256 amount = (tokens[token].balance / 1e8) * amountOut;
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
         if (amount > tokenBalance) {
             AMBRodeoToken(token).mint(amount - tokenBalance);

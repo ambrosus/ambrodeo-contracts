@@ -27,7 +27,7 @@ const config: HardhatUserConfig = {
       accounts: [privateKeyDeployer],
     },
     test: {
-      url: "https://network.ambrosus-test.io",
+      url: "https://testnet-rpc.airdao.io/",
       accounts: [privateKeyDeployer],
     },
   },
