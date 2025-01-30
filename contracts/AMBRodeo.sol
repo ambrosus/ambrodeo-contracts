@@ -367,4 +367,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function getTotalSupply() public view returns (uint256) {
         return settings.totalSupply;
     }
+
+    function getTokenSales(address token) public view returns (uint256) {
+        return
+            IERC20(token).totalSupply() -
+            IERC20(token).balanceOf(address(this));
+    }
 }
