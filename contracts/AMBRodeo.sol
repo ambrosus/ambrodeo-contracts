@@ -249,6 +249,16 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function buy(address token) public payable {
         uint256 amountIn = excludeExchangeFee(msg.value);
+
+        if (settings.balanceToDex < tokens[token].balance + amountIn) {
+            uint256 excess = (tokens[token].balance + amountIn) -
+                settings.balanceToDex;
+
+            (bool success, ) = msg.sender.call{value: excess}("");
+            if (success) revert AMBRodeoError("Transfer excess failed");
+            amountIn -= excess;
+        }
+
         if (!tokens[token].active) revert AMBRodeoError("Token not active");
         (uint256 amountOut, uint256 newReserveCoin) = calculateBuy(
             token,
