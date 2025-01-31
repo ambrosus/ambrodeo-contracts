@@ -65,8 +65,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         bool success
     );
 
-    function initialize() external initializer {
+    function initialize(Settings calldata _settings) external initializer {
         __Ownable_init(msg.sender);
+        settings = _settings;
         AMBRodeoToken tokenImplementation = new AMBRodeoToken();
         tokenImplementation.init("default", "default", 0);
         settings.tokenImplemetation = address(tokenImplementation);
