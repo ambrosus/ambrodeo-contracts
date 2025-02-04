@@ -65,6 +65,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         bool success
     );
 
+    event TokenUpdate(address token, uint256 balance, uint256 toDex);
+
     function initialize(Settings calldata _settings) external initializer {
         __Ownable_init(msg.sender);
         settings = _settings;
@@ -222,6 +224,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 true
             );
         }
+        emit TokenUpdate(
+            address(token),
+            tokens[address(token)].balance -
+                tokens[address(token)].virtualLiquidity,
+            settings.balanceToDex
+        );
     }
 
     function calculateBuy(
@@ -282,7 +290,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             tokens[token].balance - tokens[token].virtualLiquidity,
             true
         );
-
+        emit TokenUpdate(
+            token,
+            tokens[token].balance - tokens[token].virtualLiquidity,
+            settings.balanceToDex
+        );
         if (
             settings.balanceToDex != 0 &&
             (tokens[token].balance - tokens[token].virtualLiquidity) >=
@@ -310,6 +322,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             amountOut,
             tokens[token].balance - tokens[token].virtualLiquidity,
             false
+        );
+        emit TokenUpdate(
+            token,
+            tokens[token].balance - tokens[token].virtualLiquidity,
+            settings.balanceToDex
         );
     }
 
