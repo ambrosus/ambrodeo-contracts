@@ -4,10 +4,10 @@ import { AMBRodeo } from "../typechain-types";
 
 dotenv.config();
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const CONTRACT_ADDRESS = "0x617e07F330c7fB77af92ea9Bc957F48C17f563Ec";
+const CONTRACT_ADDRESS = "0x3EB4ADdFa3266aba5C00E45ACCdc614400Fdf978";
 
 async function main() {
-  await upgrade();
+  await deploy();
 }
 
 async function deploy() {
@@ -18,8 +18,9 @@ async function deploy() {
     balanceToDex: ethers.parseEther("1000000"),
     createFee: ethers.parseEther("10"),
     exchangeFee: 1500,
+    toDexFee: ethers.parseEther("25000"),
     totalSupply: ethers.parseEther("1000000000"),
-    virtualLiquidity: ethers.parseEther("35000"),
+    virtualLiquidity: ethers.parseEther("250000"),
     initLiquidity: false,
   };
 

@@ -21,6 +21,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 balanceToDex;
         uint256 createFee;
         uint256 exchangeFee;
+        uint256 toDexFee;
         uint256 totalSupply;
         uint256 virtualLiquidity;
         bool initLiquidity;
@@ -318,7 +319,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function toDex(address token) internal {
         uint256 gas = gasleft();
-
+        excludeToDexFee(token);
         excludeVirtualLiquidity(token);
         uint256 amount = IERC20(token).balanceOf(address(this));
         IERC20(token).approve(settings.dex, amount);
@@ -369,6 +370,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         } else if (amount < tokenBalance) {
             AMBRodeoToken(token).burn(tokenBalance - amount);
         }
+    }
+
+    function excludeToDexFee(address token) internal {
+        tokens[token].balance -= settings.toDexFee;
+        internalBalance += settings.toDexFee;
     }
 
     function getCreateFee() public view returns (uint256) {
