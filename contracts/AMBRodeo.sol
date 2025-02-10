@@ -319,7 +319,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function toDex(address token) internal {
         uint256 gas = gasleft();
-        excludeToDexFee(token);
         excludeVirtualLiquidity(token);
         uint256 amount = IERC20(token).balanceOf(address(this));
         IERC20(token).approve(settings.dex, amount);
@@ -360,9 +359,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     }
 
     function excludeVirtualLiquidity(address token) internal {
-        if (tokens[token].virtualLiquidity == 1) return;
-        tokens[token].balance -= tokens[token].virtualLiquidity;
         (uint256 amountOut, ) = calculateBuy(token, 1e8);
+        excludeToDexFee(token);
+
+        tokens[token].balance -= tokens[token].virtualLiquidity;
         uint256 amount = (tokens[token].balance / 1e8) * amountOut;
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
         if (amount > tokenBalance) {
