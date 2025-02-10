@@ -263,7 +263,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 settings.balanceToDex;
 
             (bool success, ) = msg.sender.call{value: excess}("");
-            if (success) revert AMBRodeoError("Transfer excess failed");
+            if (!success) revert AMBRodeoError("Transfer excess failed");
             amountIn -= excess;
         }
 
