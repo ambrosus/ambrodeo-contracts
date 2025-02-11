@@ -24,6 +24,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 toDexFee;
         uint256 totalSupply;
         uint256 virtualLiquidity;
+        uint256 virtualToken;
         bool initLiquidity;
     }
 
@@ -41,6 +42,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         address account,
         string name,
         string symbol,
+        uint256 totalSupply,
         bytes data
     );
     event TokenTrade(
@@ -187,7 +189,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         // if (msg.value > settings.createFee)
         //     payable(msg.sender).transfer(msg.value - settings.createFee);
         internalBalance += settings.createFee;
-        emit CreateToken(address(token), msg.sender, name, symbol, data);
+        emit CreateToken(
+            address(token),
+            msg.sender,
+            name,
+            symbol,
+            settings.totalSupply,
+            data
+        );
 
         if (msg.value > settings.createFee) {
             uint256 amountIn = msg.value - settings.createFee;
@@ -232,7 +241,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 amountCoinIn
     ) public view returns (uint256 amountTokenOut, uint256 newReserveCoin) {
         require(amountCoinIn > 0, "Amount must be greater than 0");
-        uint256 reserveToken = IERC20(token).balanceOf(address(this));
+        uint256 reserveToken = (IERC20(token).balanceOf(address(this)) +
+            settings.virtualToken);
         uint256 k = tokens[token].balance * reserveToken;
         newReserveCoin = tokens[token].balance + amountCoinIn;
         uint256 newReserveToken = k / newReserveCoin;
@@ -244,7 +254,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 amountTokenIn
     ) public view returns (uint256 amountCoinOut, uint256 newReserveCoin) {
         require(amountTokenIn > 0, "Amount must be greater than 0");
-        uint256 reserveToken = IERC20(token).balanceOf(address(this));
+        uint256 reserveToken = (IERC20(token).balanceOf(address(this)) +
+            settings.virtualToken);
         uint256 k = tokens[token].balance * reserveToken;
         uint256 newReserveToken = reserveToken + amountTokenIn;
         newReserveCoin = k / newReserveToken;
@@ -319,7 +330,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
     function toDex(address token) internal {
         uint256 gas = gasleft();
-        excludeVirtualLiquidity(token);
+        excludeInternalLiquidity(token);
         uint256 amount = IERC20(token).balanceOf(address(this));
         IERC20(token).approve(settings.dex, amount);
         (bool success, bytes memory data) = settings.dex.call{
@@ -358,11 +369,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         }
     }
 
-    function excludeVirtualLiquidity(address token) internal {
+    function excludeInternalLiquidity(address token) internal {
         (uint256 amountOut, ) = calculateBuy(token, 1e8);
-        excludeToDexFee(token);
 
         tokens[token].balance -= tokens[token].virtualLiquidity;
+        excludeToDexFee(token);
+
         uint256 amount = (tokens[token].balance / 1e8) * amountOut;
         uint256 tokenBalance = IERC20(token).balanceOf(address(this));
         if (amount > tokenBalance) {

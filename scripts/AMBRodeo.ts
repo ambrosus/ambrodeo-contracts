@@ -4,23 +4,24 @@ import { AMBRodeo } from "../typechain-types";
 
 dotenv.config();
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const CONTRACT_ADDRESS = "0x3EB4ADdFa3266aba5C00E45ACCdc614400Fdf978";
+const CONTRACT_ADDRESS = "0xCE053020E337E212F71D330199968c39cAc510B8";
 
 async function main() {
-  await deploy();
+  await getImplementation();
 }
 
 async function deploy() {
   const settings: AMBRodeo.SettingsStruct = {
     createToken: true,
     tokenImplemetation: ZERO_ADDRESS,
-    dex: ZERO_ADDRESS,
+    dex: "0xA3E524dFc9deA66aE32e81a5E2B4DF24F56e2CBc",
     balanceToDex: ethers.parseEther("1000000"),
-    createFee: ethers.parseEther("10"),
+    createFee: ethers.parseEther("1000"),
     exchangeFee: 1500,
     toDexFee: ethers.parseEther("25000"),
     totalSupply: ethers.parseEther("1000000000"),
     virtualLiquidity: ethers.parseEther("250000"),
+    virtualToken: ethers.parseEther("0"),
     initLiquidity: false,
   };
 
