@@ -133,6 +133,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         settings.totalSupply = amount;
     }
 
+    function setVirtualToken(uint256 amount) external onlyOwner {
+        settings.virtualToken = amount;
+    }
+
     function excludeExchangeFee(uint256 input) internal returns (uint256) {
         uint256 amount = uint256(
             (input / PERCENT_FACTOR) * settings.exchangeFee
