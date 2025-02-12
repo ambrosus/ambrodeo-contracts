@@ -4,7 +4,7 @@ import { AMBRodeo } from "../typechain-types";
 
 dotenv.config();
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const CONTRACT_ADDRESS = "0xe6f7bC63F52cc448AB54764Ff4F9bCBb6f48AeA7";
+const CONTRACT_ADDRESS = "0x833Ae768cC7568c567983E05671d2d528609B862";
 
 async function main() {
   await getImplementation();
@@ -20,8 +20,8 @@ async function deploy() {
     exchangeFee: 1500,
     toDexFee: ethers.parseEther("25000"),
     totalSupply: ethers.parseEther("1000000000"),
-    virtualLiquidity: ethers.parseEther("250000"),
-    virtualToken: ethers.parseEther("0"),
+    virtualLiquidity: BigInt("333333333333333000000000"),
+    virtualToken: BigInt("66666666666668200000000000"),
     initLiquidity: false,
   };
 

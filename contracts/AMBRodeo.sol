@@ -59,6 +59,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     );
 
     event LiquidityTrade(
+        address token,
         uint256 liquidity,
         uint256 virtualLiquidity,
         uint256 tokenBlanace,
@@ -250,6 +251,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 true
             );
             emit LiquidityTrade(
+                address(token),
                 tokens[address(token)].balance,
                 tokens[address(token)].virtualLiquidity,
                 IERC20(token).balanceOf(address(this)),
@@ -320,6 +322,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             true
         );
         emit LiquidityTrade(
+            token,
             tokens[token].balance,
             tokens[token].virtualLiquidity,
             IERC20(token).balanceOf(address(this)),
@@ -355,6 +358,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             false
         );
         emit LiquidityTrade(
+            token,
             tokens[token].balance,
             tokens[token].virtualLiquidity,
             IERC20(token).balanceOf(address(this)),
