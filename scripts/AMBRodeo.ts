@@ -4,7 +4,7 @@ import { AMBRodeo } from "../typechain-types";
 
 dotenv.config();
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-const CONTRACT_ADDRESS = "0xCE053020E337E212F71D330199968c39cAc510B8";
+const CONTRACT_ADDRESS = "0xe6f7bC63F52cc448AB54764Ff4F9bCBb6f48AeA7";
 
 async function main() {
   await getImplementation();
