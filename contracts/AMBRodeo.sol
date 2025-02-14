@@ -250,14 +250,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 settings.balanceToDex,
                 true
             );
-            emit LiquidityTrade(
-                address(token),
-                tokens[address(token)].balance,
-                tokens[address(token)].virtualLiquidity,
-                IERC20(token).balanceOf(address(this)),
-                tokens[address(token)].virtualToken
-            );
         }
+        emit LiquidityTrade(
+            address(token),
+            tokens[address(token)].balance,
+            tokens[address(token)].virtualLiquidity,
+            IERC20(token).balanceOf(address(this)),
+            tokens[address(token)].virtualToken
+        );
     }
 
     function calculateBuy(
