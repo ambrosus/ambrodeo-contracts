@@ -157,6 +157,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         return input - amount;
     }
 
+    function calculateSlippage(
+        uint256 input,
+        uint256 slippagePercent
+    ) internal pure returns (uint256) {
+        uint256 amount = uint256((input / PERCENT_FACTOR) * slippagePercent);
+        return input - amount;
+    }
+
     function tokenChangeOwner(
         address token,
         address newOwner
@@ -286,8 +294,13 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         amountCoinOut = tokens[token].balance - newReserveCoin;
     }
 
-    function buy(address token) public payable {
+    function buy(
+        address token,
+        uint256 out,
+        uint256 slippagePercent
+    ) public payable {
         uint256 amountIn = excludeExchangeFee(msg.value);
+        uint256 minOut = calculateSlippage(out, slippagePercent);
 
         if (
             settings.balanceToDex <
@@ -307,6 +320,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             token,
             amountIn
         );
+
+        require(minOut <= amountOut, "Slippage is big");
+
         tokens[token].balance = newReserveCoin;
         if (!IERC20(token).transfer(msg.sender, amountOut))
             revert AMBRodeoError("Transfer token failed");
@@ -335,7 +351,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         ) toDex(token);
     }
 
-    function sell(address token, uint256 amount) public {
+    function sell(
+        address token,
+        uint256 amount,
+        uint256 out,
+        uint256 slippagePercent
+    ) public {
+        uint256 minOut = calculateSlippage(out, slippagePercent);
+
         if (!tokens[token].active) revert AMBRodeoError("Token not active");
         (uint256 amountOut, uint256 newReserveCoin) = calculateSell(
             token,
@@ -345,6 +368,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 amountOutExcludeFee = excludeExchangeFee(amountOut);
         if (!IERC20(token).transferFrom(msg.sender, address(this), amount))
             revert AMBRodeoError("Transfer token failed");
+
+        require(minOut <= amountOutExcludeFee, "Slippage is big");
 
         payable(msg.sender).transfer(amountOutExcludeFee);
         emit TokenTrade(
