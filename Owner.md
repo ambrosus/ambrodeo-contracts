@@ -141,3 +141,27 @@ Toggles the active status of a specified token.
 
 **Access Control:**
 - Can only be called by the contract owner.
+
+---
+
+### `setVirtualToken(uint256 amount)`
+**Description:**
+Updates the virtual token setting.
+
+**Parameters:**
+- `amount (uint256)`: The new virtual token amount.
+
+**Access Control:**
+- Can only be called by the contract owner.
+
+---
+
+### `setToDexFee(uint256 amount)`
+**Description:**
+Sets the fee required to dex a token.
+
+**Parameters:**
+- `amount (uint256)`: The new creation fee.
+
+**Access Control:**
+- Can only be called by the contract owner.
