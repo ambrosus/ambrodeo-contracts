@@ -165,3 +165,15 @@ Sets the fee required to dex a token.
 
 **Access Control:**
 - Can only be called by the contract owner.
+
+---
+
+### `setLimitOwnerBuy(uint256 amount)`
+**Description:**
+Sets the limit required to owner buy a token.
+
+**Parameters:**
+- `amount (uint256)`: The new limit.
+
+**Access Control:**
+- Can only be called by the contract owner.

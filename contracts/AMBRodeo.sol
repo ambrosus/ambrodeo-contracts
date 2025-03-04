@@ -26,6 +26,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         uint256 totalSupply;
         uint256 virtualLiquidity;
         uint256 virtualToken;
+        uint256 limitOwnerBuy;
         bool initLiquidity;
     }
 
@@ -141,6 +142,10 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         settings.exchangeFee = amount;
     }
 
+    function setLimitOwnerBuy(uint256 amount) external onlyOwner {
+        settings.limitOwnerBuy = amount;
+    }
+
     function setTotalSupply(uint256 amount) external onlyOwner {
         settings.totalSupply = amount;
     }
@@ -229,6 +234,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
 
         if (msg.value > settings.createFee) {
             uint256 amountIn = msg.value - settings.createFee;
+            require(amountIn <= settings.limitOwnerBuy, "Owner buy is limited");
             (uint256 amountOut, uint256 newReserveCoin) = calculateBuy(
                 address(token),
                 amountIn
@@ -476,5 +482,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         return
             IERC20(token).totalSupply() -
             IERC20(token).balanceOf(address(this));
+    }
+
+    function getLimitOwnerBuy() public view returns (uint256) {
+        return settings.limitOwnerBuy;
     }
 }
