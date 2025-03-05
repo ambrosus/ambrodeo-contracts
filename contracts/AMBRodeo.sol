@@ -33,6 +33,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     uint256 public constant PERCENT_FACTOR = 100000;
     Settings public settings;
     mapping(address => Token) public tokens;
+    mapping(string => address) public tokenName;
+    mapping(string => address) public tokenSymbol;
     address[] public list;
     uint256 public internalBalance;
 
@@ -206,6 +208,12 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         if (settings.totalSupply == 0 || settings.virtualLiquidity == 0)
             revert AMBRodeoError("Settings error");
 
+        if (
+            tokenName[name] != address(0) || tokenSymbol[symbol] != address(0)
+        ) {
+            revert AMBRodeoError("Token exists");
+        }
+
         AMBRodeoToken token = AMBRodeoToken(
             Clones.clone(settings.tokenImplemetation)
         );
@@ -220,6 +228,8 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         });
         list.push(address(token));
 
+        tokenName[name] = address(token);
+        tokenSymbol[symbol] = address(token);
         // if (msg.value > settings.createFee)
         //     payable(msg.sender).transfer(msg.value - settings.createFee);
         internalBalance += settings.createFee;
@@ -424,6 +434,7 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         (uint256 amountToken, uint256 amountAMB, uint256 liquidity) = abi
             .decode(data, (uint256, uint256, uint256));
         tokens[token].balance = 0;
+        tokens[token].virtualToken = 0;
         tokens[token].active = false;
         emit TransferToDex(token, amountToken, amountAMB, liquidity);
 
