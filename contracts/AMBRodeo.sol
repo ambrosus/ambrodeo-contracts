@@ -508,6 +508,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function getTokenBySymbol(
         string calldata symbol
     ) public view returns (address) {
-        return tokenName[symbol];
+        return tokenSymbol[symbol];
     }
 }
