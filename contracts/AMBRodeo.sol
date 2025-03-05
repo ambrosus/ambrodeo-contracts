@@ -498,4 +498,16 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
     function getLimitOwnerBuy() public view returns (uint256) {
         return settings.limitOwnerBuy;
     }
+
+    function getTokenByName(
+        string calldata name
+    ) public view returns (address) {
+        return tokenName[name];
+    }
+
+    function getTokenBySymbol(
+        string calldata symbol
+    ) public view returns (address) {
+        return tokenName[symbol];
+    }
 }
