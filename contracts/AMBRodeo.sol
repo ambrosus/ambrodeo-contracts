@@ -258,14 +258,18 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 newReserveCoin = msg.value - settings.createFee;
             }
 
+            emit LiquidityTrade(
+                address(token),
+                tokens[address(token)].balance,
+                tokens[address(token)].virtualLiquidity,
+                IERC20(token).balanceOf(address(this)),
+                tokens[address(token)].virtualToken
+            );
+
             tokens[address(token)].balance = newReserveCoin;
+
             if (!IERC20(token).transfer(msg.sender, amountOut))
                 revert AMBRodeoError("Transfer token failed");
-
-            if (
-                settings.balanceToDex != 0 &&
-                tokens[address(token)].balance >= settings.balanceToDex
-            ) toDex(address(token));
 
             emit TokenTrade(
                 address(token),
@@ -278,14 +282,20 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 settings.balanceToDex,
                 true
             );
+
+            if (
+                settings.balanceToDex != 0 &&
+                tokens[address(token)].balance >= settings.balanceToDex
+            ) toDex(address(token));
+        } else {
+            emit LiquidityTrade(
+                address(token),
+                tokens[address(token)].balance,
+                tokens[address(token)].virtualLiquidity,
+                IERC20(token).balanceOf(address(this)),
+                tokens[address(token)].virtualToken
+            );
         }
-        emit LiquidityTrade(
-            address(token),
-            tokens[address(token)].balance,
-            tokens[address(token)].virtualLiquidity,
-            IERC20(token).balanceOf(address(this)),
-            tokens[address(token)].virtualToken
-        );
     }
 
     function calculateBuy(
