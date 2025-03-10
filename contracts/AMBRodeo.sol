@@ -242,6 +242,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
             data
         );
 
+        emit LiquidityTrade(
+            address(token),
+            tokens[address(token)].balance,
+            tokens[address(token)].virtualLiquidity,
+            IERC20(token).balanceOf(address(this)),
+            tokens[address(token)].virtualToken
+        );
+
         if (msg.value > settings.createFee) {
             uint256 amountIn = msg.value - settings.createFee;
             require(amountIn <= settings.limitOwnerBuy, "Owner buy is limited");
@@ -257,14 +265,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 amountOut = amount;
                 newReserveCoin = msg.value - settings.createFee;
             }
-
-            emit LiquidityTrade(
-                address(token),
-                tokens[address(token)].balance,
-                tokens[address(token)].virtualLiquidity,
-                IERC20(token).balanceOf(address(this)),
-                tokens[address(token)].virtualToken
-            );
 
             tokens[address(token)].balance = newReserveCoin;
 
@@ -283,11 +283,6 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 true
             );
 
-            if (
-                settings.balanceToDex != 0 &&
-                tokens[address(token)].balance >= settings.balanceToDex
-            ) toDex(address(token));
-        } else {
             emit LiquidityTrade(
                 address(token),
                 tokens[address(token)].balance,
@@ -295,6 +290,11 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 IERC20(token).balanceOf(address(this)),
                 tokens[address(token)].virtualToken
             );
+
+            if (
+                settings.balanceToDex != 0 &&
+                tokens[address(token)].balance >= settings.balanceToDex
+            ) toDex(address(token));
         }
     }
 
