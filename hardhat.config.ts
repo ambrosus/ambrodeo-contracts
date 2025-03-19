@@ -31,6 +31,10 @@ const config: HardhatUserConfig = {
       url: "https://network.ambrosus-test.io",
       accounts: [privateKeyDeployer],
     },
+    prod: {
+      url: "https://network.ambrosus.io",
+      accounts: [privateKeyDeployer],
+    },
   },
 };
 

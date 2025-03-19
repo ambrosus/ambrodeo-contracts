@@ -168,6 +168,14 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
         return input - amount;
     }
 
+    function includeExchangeFee(uint256 input) internal returns (uint256) {
+        uint256 amount = uint256(
+            (input / PERCENT_FACTOR) * settings.exchangeFee
+        );
+        internalBalance -= amount;
+        return input + amount;
+    }
+
     function calculateSlippage(
         uint256 input,
         uint256 slippagePercent
@@ -340,7 +348,9 @@ contract AMBRodeo is Initializable, OwnableUpgradeable {
                 tokens[token].virtualLiquidity) + amountIn) -
                 settings.balanceToDex;
 
-            (bool success, ) = msg.sender.call{value: excess}("");
+            uint256 excessIncludeFee = includeExchangeFee(excess);
+
+            (bool success, ) = msg.sender.call{value: excessIncludeFee}("");
             if (!success) revert AMBRodeoError("Transfer excess failed");
             amountIn -= excess;
         }
